@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readJsonObject, RequestBodyError } from './request-json';
+import { readJsonObject } from './request-json';
 
 describe('readJsonObject', () => {
   it('returns a JSON object', async () => {
@@ -19,7 +19,7 @@ describe('readJsonObject', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    await expect(readJsonObject(request)).rejects.toMatchObject<RequestBodyError>({
+    await expect(readJsonObject(request)).rejects.toMatchObject({
       status: 400,
       code: 'engineering_demo_invalid_json',
     });
@@ -32,7 +32,7 @@ describe('readJsonObject', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    await expect(readJsonObject(request)).rejects.toMatchObject<RequestBodyError>({
+    await expect(readJsonObject(request)).rejects.toMatchObject({
       status: 400,
       code: 'engineering_demo_invalid_json_object',
     });
@@ -45,7 +45,7 @@ describe('readJsonObject', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    await expect(readJsonObject(request, 32)).rejects.toMatchObject<RequestBodyError>({
+    await expect(readJsonObject(request, 32)).rejects.toMatchObject({
       status: 413,
       code: 'engineering_demo_request_too_large',
     });
