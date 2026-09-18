@@ -47,6 +47,7 @@ services:
         condition: service_started
     entrypoint: ["sh"]
     environment:
+      HOME: /tmp
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_NAME: ${DB_NAME:-engineering_demo}
       WORDPRESS_DB_USER: ${DB_USER:-wordpress}
