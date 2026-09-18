@@ -1,12 +1,23 @@
 # Tuluzov Engineering Demo
 
-A portfolio-grade headless commerce playground that connects a **WordPress + WooCommerce backend** to a **Next.js frontend**, runs locally with **Docker Compose**, and is prepared for **GitHub Actions CI/CD**.
+A portfolio-grade headless commerce playground that connects a **WordPress + WooCommerce backend** to a **Next.js frontend/BFF**, runs locally with **Docker Compose**, and is verified by **GitHub Actions CI**.
 
 The project is intentionally close to real production work: WooCommerce remains the commerce source of truth, WordPress is extended through a small public REST plugin rather than core modifications, and the frontend consumes supported APIs.
 
+## What it demonstrates
+
+- headless WooCommerce product catalogue
+- Store API cart with add/update/remove operations
+- server-side WooCommerce `Cart-Token` handling via an HttpOnly cookie
+- Next.js Route Handlers used as a Backend-for-Frontend boundary
+- checkout and WooCommerce order creation without a real payment transaction
+- HPOS-aware WordPress/WooCommerce code and bootstrap
+- reproducible local infrastructure
+- automated Docker integration smoke testing
+
 ## Stack
 
-- WordPress 7.1.x (official 7.1 image; current stable is 7.1.1)
+- WordPress 7.1.x
 - WooCommerce 11.1.0
 - PHP 8.3
 - MariaDB 11.4
@@ -31,7 +42,7 @@ cp .env.example .env
 ./scripts/init.sh
 ```
 
-The init script builds and starts the services, installs WordPress, installs and activates WooCommerce, activates the custom demo API plugin, and seeds four sample products.
+The init script builds and starts the services, installs WordPress, installs and activates WooCommerce, enables HPOS when required, configures the offline demo payment method, activates the custom demo API plugin, and seeds four virtual sample products.
 
 Open:
 
@@ -42,6 +53,18 @@ Open:
 
 Before exposing the environment publicly, replace the demo credentials in `.env`.
 
+## Cart and checkout architecture
+
+The browser never receives the WooCommerce `Cart-Token` directly. It calls same-origin Next.js routes; the BFF talks to WooCommerce and stores the token in an `HttpOnly`, `SameSite=Lax` cookie.
+
+```text
+Browser -> Next.js BFF -> WooCommerce Store API -> WooCommerce order / HPOS
+             |
+             +-> HttpOnly cart-token cookie
+```
+
+Checkout uses WooCommerce's built-in offline `cheque` gateway with demo-only wording. **No real payment is collected.**
+
 ## Useful commands
 
 ```bash
@@ -49,6 +72,8 @@ docker compose ps
 docker compose logs -f frontend
 docker compose logs -f wordpress
 docker compose run --rm wp-cli /scripts/bootstrap-wp.sh
+docker compose run --rm wp-cli -c 'wp wc hpos status --allow-root'
+sh scripts/smoke-test.sh
 docker compose down
 ```
 
@@ -61,17 +86,21 @@ docker compose down
 ├── backend/
 │   └── wp-content/plugins/engineering-demo-api/
 ├── frontend/
+│   ├── src/app/api/cart/
+│   ├── src/app/api/checkout/
+│   ├── src/components/
+│   └── src/lib/
 ├── scripts/
 ├── docs/
 ├── .github/workflows/ci.yml
 └── docker-compose.yml
 ```
 
-See `docs/ARCHITECTURE.md` for design decisions, `docs/ROADMAP.md` for the next implementation stages, and `docs/VALIDATION.md` for the exact verification status.
+See `docs/ARCHITECTURE.md` for design decisions, `docs/ROADMAP.md` for implementation stages, and `docs/VALIDATION.md` for the exact verification status.
 
 ## CI
 
-The initial GitHub Actions workflow checks:
+GitHub Actions checks:
 
 - ESLint
 - TypeScript
@@ -79,5 +108,10 @@ The initial GitHub Actions workflow checks:
 - PHP syntax
 - shell script syntax
 - Docker Compose configuration
+- full Docker runtime bootstrap
+- live WooCommerce Store API catalogue
+- BFF cart session and add-to-cart flow
+- Store API checkout and WooCommerce order creation
+- order retrieval through WooCommerce CRUD with HPOS enabled
 
 Production deployment is intentionally not hard-coded yet. It will be added after the actual `demo.tuluzov.com` server topology and deployment access are confirmed.
