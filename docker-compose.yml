@@ -39,6 +39,7 @@ services:
 
   wp-cli:
     image: wordpress:cli-php8.3
+    user: "33:33"
     depends_on:
       db:
         condition: service_healthy
