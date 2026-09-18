@@ -66,6 +66,7 @@ foreach ($products as $product_data) {
     $product->set_short_description($product_data['description']);
     $product->set_status('publish');
     $product->set_catalog_visibility('visible');
+    $product->set_virtual(true);
     $product->set_manage_stock(true);
     $product->set_stock_quantity(20);
     $product->set_stock_status('instock');

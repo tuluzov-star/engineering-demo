@@ -37,11 +37,13 @@ else
 fi
 
 wp plugin activate engineering-demo-api --allow-root
-wp option update woocommerce_currency USD --allow-root
-wp option update woocommerce_store_address 'Engineering Demo' --allow-root
-wp option update woocommerce_store_city 'Demo City' --allow-root
-wp option update woocommerce_default_country 'US:CA' --allow-root
 
+hpos_enabled=$(wp option get woocommerce_custom_orders_table_enabled --allow-root 2>/dev/null || true)
+if [ "$hpos_enabled" != "yes" ]; then
+  wp wc hpos enable --for-new-shop --allow-root
+fi
+
+wp eval-file /scripts/configure-store.php --allow-root
 wp eval-file /scripts/seed-products.php --allow-root
 
 printf '\n%s\n' 'Backend ready.'

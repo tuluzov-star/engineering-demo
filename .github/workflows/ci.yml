@@ -38,6 +38,7 @@ jobs:
           php-version: '8.3'
       - run: php -l backend/wp-content/plugins/engineering-demo-api/engineering-demo-api.php
       - run: php -l scripts/seed-products.php
+      - run: php -l scripts/configure-store.php
       - run: bash -n scripts/bootstrap-wp.sh
       - run: bash -n scripts/init.sh
 

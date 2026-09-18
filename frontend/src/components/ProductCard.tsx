@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { AddToCartButton } from '@/components/AddToCartButton';
 import {
   formatProductPrice,
   plainText,
@@ -39,7 +40,10 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
         <h2>{product.name}</h2>
         <p>{description || 'WooCommerce product delivered through the Store API.'}</p>
-        <strong>{formatProductPrice(product)}</strong>
+        <div className="product-card__footer">
+          <strong>{formatProductPrice(product)}</strong>
+          <AddToCartButton productId={product.id} disabled={!product.is_in_stock} />
+        </div>
       </div>
     </article>
   );
