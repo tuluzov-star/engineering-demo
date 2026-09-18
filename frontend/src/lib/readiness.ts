@@ -21,7 +21,7 @@ export async function getApplicationReadiness(): Promise<ApplicationReadiness> {
   const backend =
     backendResult.status === 'fulfilled' ? backendResult.value : null;
   const backendReady =
-    backendResult.status === 'fulfilled' &&
+    backend !== null &&
     backend.status === 'ready' &&
     backend.checks?.database === true &&
     backend.checks?.woocommerce === true &&
