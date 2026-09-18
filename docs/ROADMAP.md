@@ -26,11 +26,12 @@
 
 - [ ] PHPUnit for the WordPress plugin
 - [x] frontend unit tests
-- [ ] frontend component tests
+- [x] frontend component tests
 - [x] Playwright end-to-end smoke tests
+- [x] automated WCAG A/AA checks for catalogue and checkout state
 - [x] structured JSON logging for BFF commerce routes without checkout PII
 - [x] separate liveness/readiness probes for WordPress and Next.js
-- [ ] caching and revalidation strategy
+- [x] catalogue caching and revalidation strategy
 - [x] request throttling for public demo mutation endpoints
 - [x] bounded JSON parsing and explicit malformed/oversized request errors
 
@@ -54,5 +55,5 @@
 - [ ] short demo video
 - [ ] public README screenshots
 - [ ] documented trade-offs
-- [ ] performance measurements
+- [ ] performance measurements and budgets
 - [ ] one real business integration extracted from an existing WordPress/WooCommerce project
