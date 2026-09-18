@@ -9,8 +9,8 @@ export async function GET() {
   const status = readiness.ready ? 200 : 503;
 
   if (!readiness.ready) {
-    logEvent('warn', 'health_degraded', {
-      route: '/api/health',
+    logEvent('warn', 'readiness_failed', {
+      route: '/api/ready',
       status,
       outcome: 'unavailable',
     });
@@ -18,8 +18,8 @@ export async function GET() {
 
   return NextResponse.json(
     {
-      status: readiness.ready ? 'ok' : 'degraded',
-      frontend: 'nextjs',
+      status: readiness.ready ? 'ready' : 'not_ready',
+      service: 'engineering-demo-frontend',
       checks: readiness.checks,
       backend: readiness.backend,
       timestamp: new Date().toISOString(),

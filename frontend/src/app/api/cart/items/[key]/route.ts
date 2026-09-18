@@ -1,5 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import type { StoreApiCart, StoreApiError } from '@/lib/store-api';
+import {
+  createRequestContext,
+  observedJson,
+  type RequestContext,
+} from '@/lib/observability';
 import { readJsonObject, RequestBodyError } from '@/lib/request-json';
 import {
   checkRateLimit,
@@ -24,26 +29,33 @@ const CART_MUTATION_POLICY = {
   windowMs: 60_000,
 } as const;
 
-export async function PATCH(request: NextRequest, context: RouteContext) {
+export async function PATCH(request: NextRequest, routeContext: RouteContext) {
+  const context = createRequestContext(request, '/api/cart/items/:key');
   const rateLimit = checkRateLimit(
     requestRateLimitKey(request, 'cart-mutation'),
     CART_MUTATION_POLICY,
   );
 
   if (!rateLimit.allowed) {
-    return rateLimitedResponse(rateLimit);
+    return rateLimitedResponse(context, rateLimit);
   }
 
-  const { key } = await context.params;
+  const { key } = await routeContext.params;
   let payload: Record<string, unknown>;
 
   try {
     payload = await readJsonObject(request, 2 * 1024);
   } catch (error) {
     if (error instanceof RequestBodyError) {
-      return NextResponse.json(
+      return observedJson(
+        context,
         { code: error.code, message: error.message },
-        { status: error.status, headers: rateLimitHeaders(rateLimit) },
+        {
+          status: error.status,
+          headers: rateLimitHeaders(rateLimit),
+          outcome: 'client_error',
+          errorCode: error.code,
+        },
       );
     }
 
@@ -53,45 +65,71 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const quantity = Number(payload.quantity);
 
   if (!key || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-    return NextResponse.json(
+    return observedJson(
+      context,
       {
         code: 'engineering_demo_invalid_cart_update',
         message: 'A cart item key and quantity between 1 and 99 are required.',
       },
-      { status: 400, headers: rateLimitHeaders(rateLimit) },
+      {
+        status: 400,
+        headers: rateLimitHeaders(rateLimit),
+        outcome: 'client_error',
+        errorCode: 'engineering_demo_invalid_cart_update',
+      },
     );
   }
 
-  return mutateCart(request, '/cart/update-item', { key, quantity }, rateLimit);
+  return mutateCart(
+    request,
+    context,
+    '/cart/update-item',
+    { key, quantity },
+    rateLimit,
+  );
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, routeContext: RouteContext) {
+  const context = createRequestContext(request, '/api/cart/items/:key');
   const rateLimit = checkRateLimit(
     requestRateLimitKey(request, 'cart-mutation'),
     CART_MUTATION_POLICY,
   );
 
   if (!rateLimit.allowed) {
-    return rateLimitedResponse(rateLimit);
+    return rateLimitedResponse(context, rateLimit);
   }
 
-  const { key } = await context.params;
+  const { key } = await routeContext.params;
 
   if (!key) {
-    return NextResponse.json(
+    return observedJson(
+      context,
       {
         code: 'engineering_demo_invalid_cart_remove',
         message: 'A cart item key is required.',
       },
-      { status: 400, headers: rateLimitHeaders(rateLimit) },
+      {
+        status: 400,
+        headers: rateLimitHeaders(rateLimit),
+        outcome: 'client_error',
+        errorCode: 'engineering_demo_invalid_cart_remove',
+      },
     );
   }
 
-  return mutateCart(request, '/cart/remove-item', { key }, rateLimit);
+  return mutateCart(
+    request,
+    context,
+    '/cart/remove-item',
+    { key },
+    rateLimit,
+  );
 }
 
 async function mutateCart(
   request: NextRequest,
+  context: RequestContext,
   endpoint: '/cart/update-item' | '/cart/remove-item',
   payload: Record<string, string | number>,
   rateLimit: RateLimitResult,
@@ -108,34 +146,56 @@ async function mutateCart(
     );
 
     if (!result.ok) {
-      return NextResponse.json(publicStoreApiError(result.data as StoreApiError), {
+      const storeError = result.data as StoreApiError;
+
+      return observedJson(context, publicStoreApiError(storeError), {
         status: result.status,
         headers: rateLimitHeaders(rateLimit),
+        outcome: 'upstream_error',
+        errorCode: storeError.code,
+        upstreamStatus: result.status,
       });
     }
 
-    const response = NextResponse.json(result.data, {
+    const response = observedJson(context, result.data, {
       headers: rateLimitHeaders(rateLimit),
+      outcome: 'success',
+      upstreamStatus: result.status,
     });
     persistCartToken(response, result.cartToken ?? session.token);
     return response;
-  } catch (error) {
-    return NextResponse.json(
+  } catch {
+    return observedJson(
+      context,
       {
         code: 'engineering_demo_cart_mutation_failed',
-        message: error instanceof Error ? error.message : 'Could not update the cart.',
+        message: 'Could not update the cart.',
       },
-      { status: 503, headers: rateLimitHeaders(rateLimit) },
+      {
+        status: 503,
+        headers: rateLimitHeaders(rateLimit),
+        outcome: 'unavailable',
+        errorCode: 'engineering_demo_cart_mutation_failed',
+      },
     );
   }
 }
 
-function rateLimitedResponse(rateLimit: RateLimitResult) {
-  return NextResponse.json(
+function rateLimitedResponse(
+  context: RequestContext,
+  rateLimit: RateLimitResult,
+) {
+  return observedJson(
+    context,
     {
       code: 'engineering_demo_rate_limited',
       message: 'Too many cart changes. Please retry shortly.',
     },
-    { status: 429, headers: rateLimitHeaders(rateLimit) },
+    {
+      status: 429,
+      headers: rateLimitHeaders(rateLimit),
+      outcome: 'rate_limited',
+      errorCode: 'engineering_demo_rate_limited',
+    },
   );
 }

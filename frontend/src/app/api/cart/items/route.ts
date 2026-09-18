@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import type { StoreApiCart, StoreApiError } from '@/lib/store-api';
+import { createRequestContext, observedJson } from '@/lib/observability';
 import { readJsonObject, RequestBodyError } from '@/lib/request-json';
 import {
   checkRateLimit,
@@ -20,18 +21,25 @@ const CART_MUTATION_POLICY = {
 } as const;
 
 export async function POST(request: NextRequest) {
+  const context = createRequestContext(request, '/api/cart/items');
   const rateLimit = checkRateLimit(
     requestRateLimitKey(request, 'cart-mutation'),
     CART_MUTATION_POLICY,
   );
 
   if (!rateLimit.allowed) {
-    return NextResponse.json(
+    return observedJson(
+      context,
       {
         code: 'engineering_demo_rate_limited',
         message: 'Too many cart changes. Please retry shortly.',
       },
-      { status: 429, headers: rateLimitHeaders(rateLimit) },
+      {
+        status: 429,
+        headers: rateLimitHeaders(rateLimit),
+        outcome: 'rate_limited',
+        errorCode: 'engineering_demo_rate_limited',
+      },
     );
   }
 
@@ -41,9 +49,15 @@ export async function POST(request: NextRequest) {
     payload = await readJsonObject(request, 2 * 1024);
   } catch (error) {
     if (error instanceof RequestBodyError) {
-      return NextResponse.json(
+      return observedJson(
+        context,
         { code: error.code, message: error.message },
-        { status: error.status, headers: rateLimitHeaders(rateLimit) },
+        {
+          status: error.status,
+          headers: rateLimitHeaders(rateLimit),
+          outcome: 'client_error',
+          errorCode: error.code,
+        },
       );
     }
 
@@ -54,12 +68,18 @@ export async function POST(request: NextRequest) {
   const quantity = Number(payload.quantity ?? 1);
 
   if (!Number.isInteger(id) || id <= 0 || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
-    return NextResponse.json(
+    return observedJson(
+      context,
       {
         code: 'engineering_demo_invalid_cart_item',
         message: 'A valid product ID and quantity between 1 and 99 are required.',
       },
-      { status: 400, headers: rateLimitHeaders(rateLimit) },
+      {
+        status: 400,
+        headers: rateLimitHeaders(rateLimit),
+        outcome: 'client_error',
+        errorCode: 'engineering_demo_invalid_cart_item',
+      },
     );
   }
 
@@ -75,24 +95,37 @@ export async function POST(request: NextRequest) {
     );
 
     if (!result.ok) {
-      return NextResponse.json(publicStoreApiError(result.data as StoreApiError), {
+      const storeError = result.data as StoreApiError;
+
+      return observedJson(context, publicStoreApiError(storeError), {
         status: result.status,
         headers: rateLimitHeaders(rateLimit),
+        outcome: 'upstream_error',
+        errorCode: storeError.code,
+        upstreamStatus: result.status,
       });
     }
 
-    const response = NextResponse.json(result.data, {
+    const response = observedJson(context, result.data, {
       headers: rateLimitHeaders(rateLimit),
+      outcome: 'success',
+      upstreamStatus: result.status,
     });
     persistCartToken(response, result.cartToken ?? session.token);
     return response;
-  } catch (error) {
-    return NextResponse.json(
+  } catch {
+    return observedJson(
+      context,
       {
         code: 'engineering_demo_cart_add_failed',
-        message: error instanceof Error ? error.message : 'Could not add the product to the cart.',
+        message: 'Could not add the product to the cart.',
       },
-      { status: 503, headers: rateLimitHeaders(rateLimit) },
+      {
+        status: 503,
+        headers: rateLimitHeaders(rateLimit),
+        outcome: 'unavailable',
+        errorCode: 'engineering_demo_cart_add_failed',
+      },
     );
   }
 }

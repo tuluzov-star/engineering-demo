@@ -14,6 +14,8 @@ The project is intentionally close to real production work: WooCommerce remains 
 - HPOS-aware WordPress/WooCommerce code and bootstrap
 - bounded/validated mutation request bodies
 - rate limiting for public cart and checkout mutations
+- separate liveness/readiness probes for WordPress and Next.js
+- structured JSON BFF request logs with request IDs and no checkout PII
 - Vitest unit coverage for validation, JSON parsing and rate-limit behaviour
 - Playwright Chromium coverage for the real cart/checkout UI flow
 - reproducible local Docker infrastructure
@@ -57,7 +59,11 @@ Open:
 
 - Next.js frontend: `http://localhost:3000`
 - WordPress backend: `http://localhost:8080`
-- backend health endpoint: `http://localhost:8080/wp-json/engineering-demo/v1/health`
+- backend liveness: `http://localhost:8080/wp-json/engineering-demo/v1/live`
+- backend readiness: `http://localhost:8080/wp-json/engineering-demo/v1/ready`
+- frontend liveness: `http://localhost:3000/api/live`
+- frontend readiness: `http://localhost:3000/api/ready`
+- backward-compatible backend health: `http://localhost:8080/wp-json/engineering-demo/v1/health`
 - WooCommerce Store API: `http://localhost:8080/wp-json/wc/store/v1/products`
 
 Before exposing the environment publicly, replace the demo credentials in `.env`.
@@ -196,5 +202,7 @@ GitHub Actions checks:
 - API-level BFF cart/checkout + HPOS flow
 - Playwright Chromium cart/checkout UI flow
 - order retrieval through WooCommerce CRUD with HPOS enabled
+- WordPress/Next.js liveness and dependency-aware readiness
+- X-Request-ID propagation and structured commerce log records without checkout email PII
 
 The CD workflow is guarded by the repository variable `DEPLOY_ENABLED`, so production cannot be deployed accidentally before the target VPS is provisioned.

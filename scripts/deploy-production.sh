@@ -68,7 +68,7 @@ read_env_value() {
 
 wait_for_internal_health() {
   attempts=0
-  until compose exec -T frontend node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; do
+  until compose exec -T frontend node -e "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" >/dev/null 2>&1; do
     attempts=$((attempts + 1))
     if [ "$attempts" -ge 30 ]; then
       printf '%s\n' 'Frontend internal health check did not become ready.' >&2
@@ -88,7 +88,7 @@ wait_for_public_health() {
   fi
 
   attempts=0
-  until curl --fail --silent --show-error --max-time 10       "https://$frontend_host/api/health" >/dev/null     && curl --fail --silent --show-error --max-time 10       "https://$wordpress_host/wp-json/engineering-demo/v1/health" >/dev/null; do
+  until curl --fail --silent --show-error --max-time 10       "https://$frontend_host/api/ready" >/dev/null     && curl --fail --silent --show-error --max-time 10       "https://$wordpress_host/wp-json/engineering-demo/v1/ready" >/dev/null; do
     attempts=$((attempts + 1))
     if [ "$attempts" -ge 30 ]; then
       printf '%s\n' 'Public HTTPS health checks did not become ready.' >&2

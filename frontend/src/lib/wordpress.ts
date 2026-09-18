@@ -32,12 +32,17 @@ export type StoreApiProduct = {
 
 export type BackendHealth = {
   project: string;
-  status: string;
+  status: 'ok' | 'degraded' | 'ready' | 'not_ready';
   wordpress_version: string;
   woocommerce_version: string | null;
   php_version: string;
   environment: string;
   hpos_enabled: boolean | null;
+  checks?: {
+    database: boolean;
+    woocommerce: boolean;
+    hpos: boolean;
+  };
   timestamp_utc: string;
 };
 
@@ -60,13 +65,35 @@ export async function getProducts(): Promise<StoreApiProduct[]> {
 }
 
 export async function getBackendHealth(): Promise<BackendHealth> {
+  return requestBackendStatus('/health', 'Backend health');
+}
+
+export async function getBackendReadiness(): Promise<BackendHealth> {
+  return requestBackendStatus('/ready', 'Backend readiness');
+}
+
+export async function getStoreApiReadiness(): Promise<boolean> {
   const response = await fetch(
-    `${internalWordPressUrl}/wp-json/engineering-demo/v1/health`,
+    `${internalWordPressUrl}/wp-json/wc/store/v1/products?per_page=1`,
+    { cache: 'no-store' },
+  );
+
+  return response.ok;
+}
+
+async function requestBackendStatus(
+  endpoint: '/health' | '/ready',
+  label: string,
+): Promise<BackendHealth> {
+  const response = await fetch(
+    `${internalWordPressUrl}/wp-json/engineering-demo/v1${endpoint}`,
     { cache: 'no-store' },
   );
 
   if (!response.ok) {
-    throw new Error(`Backend health endpoint returned ${response.status}.`);
+    const error = new Error(`${label} endpoint returned ${response.status}.`);
+    Object.assign(error, { status: response.status });
+    throw error;
   }
 
   return (await response.json()) as BackendHealth;
