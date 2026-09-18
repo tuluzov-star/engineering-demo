@@ -28,8 +28,8 @@
 - [x] frontend unit tests
 - [ ] frontend component tests
 - [x] Playwright end-to-end smoke tests
-- [ ] structured logging
-- [ ] health/readiness probes beyond the current smoke endpoints
+- [x] structured JSON logging for BFF commerce routes without checkout PII
+- [x] separate liveness/readiness probes for WordPress and Next.js
 - [ ] caching and revalidation strategy
 - [x] request throttling for public demo mutation endpoints
 - [x] bounded JSON parsing and explicit malformed/oversized request errors
