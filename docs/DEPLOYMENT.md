@@ -124,12 +124,12 @@ The deploy script:
 5. builds the Next.js production image;
 6. starts MariaDB and WordPress;
 7. runs idempotent WP/WooCommerce bootstrap;
-8. starts Next.js and validates internal health;
-9. starts Caddy and validates both public HTTPS health endpoints;
+8. starts Next.js and waits for internal `/api/ready` readiness;
+9. starts Caddy and validates public frontend and WordPress readiness endpoints over HTTPS;
 10. moves the `current` symlink only after the release is healthy;
 11. keeps a bounded number of old releases.
 
-If activation fails after a previous release exists, the script attempts a code/container rollback automatically.
+If activation fails after a previous release exists, the script attempts a code/container rollback automatically. Liveness endpoints remain available for diagnostics, while deployment promotion depends on readiness.
 
 ## GitHub Actions CD
 
