@@ -1,4 +1,5 @@
 .env
+.env.production
 .DS_Store
 Thumbs.db
 frontend/node_modules/

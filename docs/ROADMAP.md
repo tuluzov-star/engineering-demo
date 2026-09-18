@@ -28,16 +28,22 @@
 - [ ] frontend component/unit tests
 - [ ] Playwright end-to-end smoke tests
 - [ ] structured logging
-- [ ] health/readiness probes
+- [ ] health/readiness probes beyond the current smoke endpoints
 - [ ] caching and revalidation strategy
 - [ ] request throttling for public demo mutation endpoints
 
 ## Phase 4 — Delivery
 
-- [ ] production Docker topology
-- [ ] reverse proxy and HTTPS
-- [ ] GitHub Actions deployment
-- [ ] rollback workflow
+- [x] production Docker topology
+- [x] Caddy reverse proxy and automatic HTTPS configuration
+- [x] release-based GitHub Actions deployment workflow
+- [x] automatic pre-deployment database/uploads backup
+- [x] automatic failed-deploy code rollback
+- [x] manual rollback workflow
+- [ ] provision production VPS
+- [ ] point `lab.tuluzov.com` and `cms.lab.tuluzov.com` to VPS
+- [ ] first live production deployment
+- [ ] enable guarded CD after first manual verification
 - [ ] release tags and changelog
 
 ## Phase 5 — Portfolio proof
