@@ -19,8 +19,8 @@
 - [x] Store API order creation using an offline demo payment gateway
 - [x] HPOS bootstrap command and runtime health visibility
 - [x] cart/checkout error states
-- [ ] runtime verification against the Docker stack
-- [ ] confirm order storage in HPOS tables on a running environment
+- [x] runtime verification against the Docker stack
+- [x] automated checkout order verification through WooCommerce CRUD with HPOS enabled
 
 ## Phase 3 — Engineering depth
 
