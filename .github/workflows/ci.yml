@@ -43,6 +43,7 @@ jobs:
       - run: bash -n scripts/bootstrap-wp.sh
       - run: bash -n scripts/init.sh
       - run: bash -n scripts/smoke-test.sh
+      - run: bash -n scripts/backup-production.sh
       - run: bash -n scripts/deploy-production.sh
       - run: bash -n scripts/rollback-production.sh
 
