@@ -1,0 +1,57 @@
+name: Roll back production
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Optional release SHA. Leave empty to roll back to the previous retained release.
+        required: false
+        type: string
+
+concurrency:
+  group: engineering-demo-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Roll back application code
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          case "$DEPLOY_ROOT" in
+            /*) ;;
+            *) echo "DEPLOY_ROOT must be absolute." >&2; exit 1 ;;
+          esac
+          case "${DEPLOY_PORT:-22}" in
+            *[!0-9]*) echo "DEPLOY_PORT must be numeric." >&2; exit 1 ;;
+          esac
+          ssh -p "${DEPLOY_PORT:-22}" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "sh -s -- '$DEPLOY_ROOT' '$RELEASE_SHA'" \
+            < scripts/rollback-production.sh
