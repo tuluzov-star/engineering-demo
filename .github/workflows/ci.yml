@@ -43,14 +43,34 @@ jobs:
       - run: bash -n scripts/bootstrap-wp.sh
       - run: bash -n scripts/init.sh
       - run: bash -n scripts/smoke-test.sh
+      - run: bash -n scripts/deploy-production.sh
+      - run: bash -n scripts/rollback-production.sh
 
   compose:
-    name: Docker Compose validation
+    name: Docker configuration and production image
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - run: cp .env.example .env
-      - run: docker compose config --quiet
+      - name: Validate local Compose
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+      - name: Validate production Compose
+        run: |
+          cp .env.production.example .env.production
+          docker compose --env-file .env.production -f docker-compose.production.yml config --quiet
+      - name: Validate Caddy configuration
+        run: |
+          docker run --rm \
+            -e FRONTEND_HOST=lab.tuluzov.com \
+            -e WORDPRESS_HOST=cms.lab.tuluzov.com \
+            -e TLS_EMAIL=ci@example.com \
+            -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.11.4-alpine \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Build production frontend image
+        run: docker compose --env-file .env.production -f docker-compose.production.yml build frontend
 
   integration:
     name: Docker commerce smoke test
