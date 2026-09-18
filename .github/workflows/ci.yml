@@ -84,6 +84,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Install browser test dependencies
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
       - run: cp .env.example .env
       - name: Start application stack
         run: docker compose up -d --build db wordpress frontend
@@ -91,11 +96,6 @@ jobs:
         run: docker compose run --rm wp-cli /scripts/bootstrap-wp.sh
       - name: Run API cart, checkout and HPOS smoke test
         run: sh scripts/smoke-test.sh
-      - name: Install browser test dependencies
-        working-directory: frontend
-        run: |
-          npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
       - name: Run Playwright headless commerce flow
         working-directory: frontend
         env:
