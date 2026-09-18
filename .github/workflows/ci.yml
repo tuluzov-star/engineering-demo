@@ -26,6 +26,7 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
 
   backend:
@@ -74,19 +75,42 @@ jobs:
         run: docker compose --env-file .env.production -f docker-compose.production.yml build frontend
 
   integration:
-    name: Docker commerce smoke test
+    name: Docker commerce + browser smoke test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     needs: [frontend, backend, compose]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install browser test dependencies
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
       - run: cp .env.example .env
       - name: Start application stack
         run: docker compose up -d --build db wordpress frontend
       - name: Bootstrap WordPress and WooCommerce
         run: docker compose run --rm wp-cli /scripts/bootstrap-wp.sh
-      - name: Run cart, checkout and HPOS smoke test
+      - name: Run API cart, checkout and HPOS smoke test
         run: sh scripts/smoke-test.sh
+      - name: Run Playwright headless commerce flow
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+        run: npm run e2e
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Show service state
         if: always()
         run: docker compose ps || true

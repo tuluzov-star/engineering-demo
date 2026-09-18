@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type {
-  CheckoutAddress,
   CheckoutPayload,
   StoreApiCheckoutResponse,
   StoreApiError,
 } from '@/lib/store-api';
+import { validateCheckoutInput } from '@/lib/checkout-validation';
+import { readJsonObject, RequestBodyError } from '@/lib/request-json';
+import {
+  checkRateLimit,
+  rateLimitHeaders,
+  requestRateLimitKey,
+} from '@/lib/rate-limit';
 import {
   CART_TOKEN_COOKIE,
   getOrCreateCartToken,
@@ -12,41 +18,55 @@ import {
   storeApiRequest,
 } from '@/lib/store-api-server';
 
-const REQUIRED_ADDRESS_FIELDS: Array<keyof CheckoutAddress> = [
-  'first_name',
-  'last_name',
-  'address_1',
-  'city',
-  'postcode',
-  'country',
-  'email',
-];
+const CHECKOUT_POLICY = {
+  limit: 8,
+  windowMs: 10 * 60_000,
+} as const;
 
 export async function POST(request: NextRequest) {
-  const input = (await request.json()) as Partial<CheckoutAddress> & { customer_note?: unknown };
-  const billingAddress = normalizeAddress(input);
+  const rateLimit = checkRateLimit(
+    requestRateLimitKey(request, 'checkout'),
+    CHECKOUT_POLICY,
+  );
 
-  for (const field of REQUIRED_ADDRESS_FIELDS) {
-    if (!billingAddress[field]) {
-      return NextResponse.json(
-        {
-          code: 'engineering_demo_invalid_checkout',
-          message: `Checkout field ${field} is required.`,
-        },
-        { status: 400 },
-      );
-    }
-  }
-
-  if (!/^\S+@\S+\.\S+$/.test(billingAddress.email)) {
+  if (!rateLimit.allowed) {
     return NextResponse.json(
       {
-        code: 'engineering_demo_invalid_email',
-        message: 'A valid email address is required.',
+        code: 'engineering_demo_rate_limited',
+        message: 'Too many checkout attempts. Please retry later.',
       },
-      { status: 400 },
+      { status: 429, headers: rateLimitHeaders(rateLimit) },
     );
   }
+
+  let input: Record<string, unknown>;
+
+  try {
+    input = await readJsonObject(request, 12 * 1024);
+  } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json(
+        { code: error.code, message: error.message },
+        { status: error.status, headers: rateLimitHeaders(rateLimit) },
+      );
+    }
+
+    throw error;
+  }
+
+  const validation = validateCheckoutInput(input);
+
+  if (!validation.ok) {
+    return NextResponse.json(
+      {
+        code: validation.code,
+        message: validation.message,
+      },
+      { status: 400, headers: rateLimitHeaders(rateLimit) },
+    );
+  }
+
+  const { billingAddress, customerNote } = validation;
 
   const payload: CheckoutPayload = {
     billing_address: billingAddress,
@@ -63,7 +83,7 @@ export async function POST(request: NextRequest) {
     },
     payment_method: 'cheque',
     payment_data: [],
-    customer_note: cleanText(input.customer_note, 500),
+    customer_note: customerNote,
   };
 
   try {
@@ -75,7 +95,7 @@ export async function POST(request: NextRequest) {
           code: 'engineering_demo_empty_cart',
           message: 'Add at least one product before checkout.',
         },
-        { status: 409 },
+        { status: 409, headers: rateLimitHeaders(rateLimit) },
       );
     }
 
@@ -93,10 +113,13 @@ export async function POST(request: NextRequest) {
     if (!result.ok) {
       return NextResponse.json(publicStoreApiError(result.data as StoreApiError), {
         status: result.status,
+        headers: rateLimitHeaders(rateLimit),
       });
     }
 
-    const response = NextResponse.json(result.data);
+    const response = NextResponse.json(result.data, {
+      headers: rateLimitHeaders(rateLimit),
+    });
     response.cookies.delete(CART_TOKEN_COOKIE);
     return response;
   } catch (error) {
@@ -105,31 +128,7 @@ export async function POST(request: NextRequest) {
         code: 'engineering_demo_checkout_failed',
         message: error instanceof Error ? error.message : 'Checkout could not be completed.',
       },
-      { status: 503 },
+      { status: 503, headers: rateLimitHeaders(rateLimit) },
     );
   }
-}
-
-function normalizeAddress(input: Partial<CheckoutAddress>): CheckoutAddress {
-  return {
-    first_name: cleanText(input.first_name, 80),
-    last_name: cleanText(input.last_name, 80),
-    company: cleanText(input.company, 120),
-    address_1: cleanText(input.address_1, 160),
-    address_2: cleanText(input.address_2, 160),
-    city: cleanText(input.city, 120),
-    state: cleanText(input.state, 80),
-    postcode: cleanText(input.postcode, 32),
-    country: cleanText(input.country, 2).toUpperCase(),
-    email: cleanText(input.email, 160),
-    phone: cleanText(input.phone, 40),
-  };
-}
-
-function cleanText(value: unknown, maxLength: number): string {
-  if (typeof value !== 'string') {
-    return '';
-  }
-
-  return value.replace(/[<>]/g, '').trim().slice(0, maxLength);
 }

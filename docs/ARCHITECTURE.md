@@ -27,6 +27,8 @@ Next.js frontend + BFF :3000
   |                     |
   | Server Components   | Route Handlers
   |                     | + HttpOnly wc_cart_token cookie
+  |                     | + bounded JSON parsing
+  |                     | + per-client mutation throttling
   |                     v
   +---------------> WooCommerce Store API --------+
   |                                                |
@@ -65,6 +67,21 @@ WooCommerce Store API returns a `Cart-Token` for cart sessions. The demo intenti
 
 This BFF boundary is slightly more infrastructure than calling WooCommerce directly from the browser, but it keeps commerce-session details out of client JavaScript and gives one place for validation, logging, rate limiting and future authentication concerns.
 
+## Mutation boundary hardening
+
+The BFF treats public cart/checkout mutation routes as a separate trust boundary.
+
+- JSON request bodies are read as bounded text before parsing.
+- malformed JSON returns 400 rather than falling into a generic server error;
+- oversized bodies return 413;
+- cart mutations are limited to 40 requests per minute per derived client address;
+- checkout is limited to 8 attempts per 10 minutes per derived client address;
+- rate-limit metadata is returned in response headers;
+- checkout normalization/validation is implemented as a pure tested module before data is forwarded to WooCommerce;
+- WooCommerce still remains the authoritative commerce validator.
+
+The current limiter stores buckets in the Next.js process. That is an intentional trade-off for this single-instance demo. If the frontend is scaled to multiple replicas, rate-limit state must move to shared infrastructure such as Redis/KV.
+
 ## Checkout design
 
 - Seeded products are virtual so the demo does not depend on shipping-zone configuration.
@@ -72,6 +89,16 @@ This BFF boundary is slightly more infrastructure than calling WooCommerce direc
 - Checkout fields are validated both in the browser and again in the Next.js Route Handler.
 - WooCommerce remains responsible for authoritative checkout validation and order creation.
 - HPOS is enabled through the supported `wp wc hpos enable` command when required.
+
+## Test architecture
+
+The test pyramid currently has three layers:
+
+1. **Vitest unit tests** for pure validation, request parsing and rate-limit behaviour.
+2. **API/Docker smoke test** for Store API cart, checkout, WooCommerce order creation and HPOS-enabled CRUD retrieval.
+3. **Playwright Chromium tests** against the live Docker stack for the real browser cart and checkout interaction.
+
+Browser test traces, screenshots and video are retained only when the Playwright job fails.
 
 ## Production deployment design
 
@@ -122,7 +149,7 @@ The project therefore does not use shared-hosting workarounds such as a Python-t
 - The custom WordPress REST endpoint is read-only and exposes only non-sensitive runtime metadata.
 - Cart and checkout use supported WooCommerce Store API endpoints.
 - Cart tokens are not persisted in local storage and are not readable by client JavaScript.
-- Next.js validates basic request shape before forwarding mutations.
+- Next.js bounds, validates and rate-limits public mutation requests before forwarding them.
 - MariaDB has no public host port in production.
 - WordPress and Next.js are exposed only through Caddy.
 - Caddy terminates HTTPS and adds baseline security headers.
@@ -132,8 +159,8 @@ The project therefore does not use shared-hosting workarounds such as a Python-t
 
 ## Next technical milestones
 
-1. Provision the production VPS and point `lab.tuluzov.com` / `cms.lab.tuluzov.com` to it.
-2. Run the first manual production deployment and verify Caddy certificate issuance.
-3. Configure GitHub production secrets/variables and enable CD.
-4. Add frontend component tests and Playwright browser coverage.
-5. Add structured logging, throttling and performance measurements.
+1. Add structured server logging without customer PII.
+2. Separate liveness/readiness semantics and improve health probes.
+3. Add component tests and accessibility checks.
+4. Define the catalogue caching/revalidation strategy.
+5. Provision the production VPS when the deployment account is ready.
