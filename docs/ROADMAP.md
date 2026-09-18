@@ -25,12 +25,14 @@
 ## Phase 3 — Engineering depth
 
 - [ ] PHPUnit for the WordPress plugin
-- [ ] frontend component/unit tests
-- [ ] Playwright end-to-end smoke tests
+- [x] frontend unit tests
+- [ ] frontend component tests
+- [x] Playwright end-to-end smoke tests
 - [ ] structured logging
 - [ ] health/readiness probes beyond the current smoke endpoints
 - [ ] caching and revalidation strategy
-- [ ] request throttling for public demo mutation endpoints
+- [x] request throttling for public demo mutation endpoints
+- [x] bounded JSON parsing and explicit malformed/oversized request errors
 
 ## Phase 4 — Delivery
 
