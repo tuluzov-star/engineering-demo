@@ -1,4 +1,4 @@
-import type { CheckoutAddress } from '@/lib/store-api';
+import type { CheckoutAddress } from './store-api';
 
 const REQUIRED_ADDRESS_FIELDS: Array<keyof CheckoutAddress> = [
   'first_name',
