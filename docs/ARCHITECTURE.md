@@ -29,6 +29,7 @@ Next.js frontend + BFF :3000
   |                     | + HttpOnly wc_cart_token cookie
   |                     | + bounded JSON parsing
   |                     | + per-client mutation throttling
+  |                     | + JSON request logs / X-Request-ID
   |                     v
   +---------------> WooCommerce Store API --------+
   |                                                |
@@ -100,6 +101,20 @@ The test pyramid currently has three layers:
 
 Browser test traces, screenshots and video are retained only when the Playwright job fails.
 
+## Liveness, readiness and observability
+
+The demo separates process liveness from dependency readiness.
+
+- WordPress `/live` proves the PHP/WordPress plugin can execute.
+- WordPress `/ready` additionally requires database access, WooCommerce and HPOS.
+- Next.js `/api/live` proves the frontend process can execute.
+- Next.js `/api/ready` additionally requires WordPress readiness and a responsive WooCommerce Store API.
+- Existing `/health` endpoints remain as aggregate compatibility endpoints.
+
+Production container/deployment promotion uses readiness rather than liveness.
+
+Commerce BFF routes emit one-line JSON records to stdout with request ID, static route name, status, outcome, duration and upstream status/error code. Checkout fields, email, address, IP and Cart-Token are not sent to the structured logger.
+
 ## Production deployment design
 
 Production uses immutable code releases plus persistent Docker volumes.
@@ -159,8 +174,8 @@ The project therefore does not use shared-hosting workarounds such as a Python-t
 
 ## Next technical milestones
 
-1. Add structured server logging without customer PII.
-2. Separate liveness/readiness semantics and improve health probes.
-3. Add component tests and accessibility checks.
-4. Define the catalogue caching/revalidation strategy.
+1. Add component tests and accessibility checks.
+2. Define the catalogue caching/revalidation strategy.
+3. Add performance measurements and budgets.
+4. Add PHPUnit coverage for the custom WordPress plugin.
 5. Provision the production VPS when the deployment account is ready.
