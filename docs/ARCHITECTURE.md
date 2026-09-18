@@ -95,11 +95,19 @@ The current limiter stores buckets in the Next.js process. That is an intentiona
 
 The test pyramid currently has three layers:
 
-1. **Vitest unit tests** for pure validation, request parsing and rate-limit behaviour.
-2. **API/Docker smoke test** for Store API cart, checkout, WooCommerce order creation and HPOS-enabled CRUD retrieval.
-3. **Playwright Chromium tests** against the live Docker stack for the real browser cart and checkout interaction.
+1. **Vitest unit/component tests** for validation, request parsing, rate limits, catalogue cache policy and key commerce UI states.
+2. **API/Docker smoke test** for Store API cart, checkout, WooCommerce order creation, readiness, logging and HPOS-enabled CRUD retrieval.
+3. **Playwright Chromium tests** against the live Docker stack for the real browser cart/checkout interaction plus axe-core WCAG A/AA checks.
 
-Browser test traces, screenshots and video are retained only when the Playwright job fails.
+Browser test traces, screenshots and video are retained only when the Playwright job fails. Automated axe checks supplement, but do not replace, manual accessibility review.
+
+## Catalogue caching and revalidation
+
+The public WooCommerce catalogue uses a 60-second Next.js revalidation window and the cache tag `woocommerce-products`.
+
+Cart, checkout, health and readiness requests remain uncached. This separates presentation freshness from transactional correctness: WooCommerce still validates stock, product availability, pricing and order creation during mutations.
+
+The cache tag is intentionally prepared for future explicit invalidation, such as a signed WooCommerce/WordPress webhook, without adding that operational surface before the demo needs it.
 
 ## Liveness, readiness and observability
 
@@ -174,8 +182,8 @@ The project therefore does not use shared-hosting workarounds such as a Python-t
 
 ## Next technical milestones
 
-1. Add component tests and accessibility checks.
-2. Define the catalogue caching/revalidation strategy.
-3. Add performance measurements and budgets.
-4. Add PHPUnit coverage for the custom WordPress plugin.
+1. Add performance measurements and budgets.
+2. Add PHPUnit coverage for the custom WordPress plugin.
+3. Produce the architecture diagram and README portfolio visuals.
+4. Add release tags/changelog.
 5. Provision the production VPS when the deployment account is ready.
