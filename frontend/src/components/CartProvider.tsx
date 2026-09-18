@@ -76,8 +76,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [requestCart]);
 
   useEffect(() => {
-    void refreshCart();
-  }, [refreshCart]);
+    const controller = new AbortController();
+
+    void requestCart('/api/cart', { signal: controller.signal })
+      .then((nextCart) => {
+        setCart(nextCart);
+        setError(null);
+      })
+      .catch((requestError) => {
+        if (!controller.signal.aborted) {
+          setError(toMessage(requestError));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [requestCart]);
 
   const mutate = useCallback(
     async (url: string, init: RequestInit): Promise<boolean> => {
