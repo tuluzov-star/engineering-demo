@@ -46,6 +46,10 @@ services:
         condition: service_started
     entrypoint: ["sh"]
     environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${DB_NAME:-engineering_demo}
+      WORDPRESS_DB_USER: ${DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-wordpress-local}
       WP_URL: ${WP_URL:-http://localhost:8080}
       WP_TITLE: ${WP_TITLE:-Tuluzov Engineering Demo}
       WP_ADMIN_USER: ${WP_ADMIN_USER:-demo_admin}
