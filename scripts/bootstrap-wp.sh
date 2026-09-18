@@ -40,7 +40,7 @@ wp plugin activate engineering-demo-api --allow-root
 
 hpos_enabled=$(wp option get woocommerce_custom_orders_table_enabled --allow-root 2>/dev/null || true)
 if [ "$hpos_enabled" != "yes" ]; then
-  wp wc hpos enable --for-new-shop --allow-root
+  wp wc hpos enable --allow-root
 fi
 
 wp eval-file /scripts/configure-store.php --allow-root
