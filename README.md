@@ -12,8 +12,10 @@ The project is intentionally close to real production work: WooCommerce remains 
 - Next.js Route Handlers used as a Backend-for-Frontend boundary
 - checkout and WooCommerce order creation without a real payment transaction
 - HPOS-aware WordPress/WooCommerce code and bootstrap
-- reproducible local infrastructure
+- reproducible local Docker infrastructure
 - automated Docker integration smoke testing
+- production Docker topology with Caddy HTTPS
+- release-based GitHub Actions deployment, backup and rollback workflows
 
 ## Stack
 
@@ -24,6 +26,7 @@ The project is intentionally close to real production work: WooCommerce remains 
 - Next.js 16.3.3 / React 19
 - Node.js 24
 - Docker Compose
+- Caddy 2.11
 - GitHub Actions
 
 ## Local start
@@ -65,7 +68,35 @@ Browser -> Next.js BFF -> WooCommerce Store API -> WooCommerce order / HPOS
 
 Checkout uses WooCommerce's built-in offline `cheque` gateway with demo-only wording. **No real payment is collected.**
 
+## Production target
+
+The production topology is prepared for a small Linux VPS:
+
+```text
+Internet
+   |
+   v
+Caddy :80/:443
+   |----------------------|
+   v                      v
+lab.tuluzov.com           cms.lab.tuluzov.com
+Next.js :3000             WordPress :80
+   |                      |
+   +------ backend -------+
+              |
+              v
+          MariaDB
+```
+
+The existing `demo.tuluzov.com` remains the independent WordPress/WooCommerce plugin-demo site.
+
+The current REG.RU shared-hosting account was inspected and deliberately rejected as the Next.js production target: it has no usable Docker daemon for the hosting user, and its Passenger configuration is restricted to the hosting-provided Python application type. The project does not use a Python-to-Node proxy or unmanaged background daemon as a workaround.
+
+See `docs/DEPLOYMENT.md` for the VPS, DNS, GitHub environment, backup and rollback procedure.
+
 ## Useful commands
+
+### Local
 
 ```bash
 docker compose ps
@@ -77,7 +108,17 @@ sh scripts/smoke-test.sh
 docker compose down
 ```
 
-`docker compose down` stops the environment but keeps data volumes. `docker compose down -v` also deletes the database and WordPress data and should only be used when a full reset is intended.
+`docker compose down` stops the local environment but keeps data volumes. `docker compose down -v` also deletes the database and WordPress data and should only be used when a full reset is intended.
+
+### Production
+
+```bash
+sh scripts/backup-production.sh /opt/engineering-demo
+sh scripts/deploy-production.sh /opt/engineering-demo <git-sha>
+sh scripts/rollback-production.sh /opt/engineering-demo
+```
+
+Production deployment is disabled until the VPS and GitHub production secrets/variables are configured.
 
 ## Repository structure
 
@@ -85,6 +126,8 @@ docker compose down
 .
 ├── backend/
 │   └── wp-content/plugins/engineering-demo-api/
+├── deploy/
+│   └── Caddyfile
 ├── frontend/
 │   ├── src/app/api/cart/
 │   ├── src/app/api/checkout/
@@ -92,11 +135,17 @@ docker compose down
 │   └── src/lib/
 ├── scripts/
 ├── docs/
-├── .github/workflows/ci.yml
-└── docker-compose.yml
+├── .github/workflows/
+├── docker-compose.yml
+└── docker-compose.production.yml
 ```
 
-See `docs/ARCHITECTURE.md` for design decisions, `docs/ROADMAP.md` for implementation stages, and `docs/VALIDATION.md` for the exact verification status.
+See:
+
+- `docs/ARCHITECTURE.md` — design decisions
+- `docs/DEPLOYMENT.md` — production deployment and rollback
+- `docs/ROADMAP.md` — implementation stages
+- `docs/VALIDATION.md` — exact verification status
 
 ## CI
 
@@ -107,11 +156,13 @@ GitHub Actions checks:
 - Next.js production build
 - PHP syntax
 - shell script syntax
-- Docker Compose configuration
+- local and production Docker Compose configuration
+- Caddy configuration
+- production frontend container build
 - full Docker runtime bootstrap
 - live WooCommerce Store API catalogue
 - BFF cart session and add-to-cart flow
 - Store API checkout and WooCommerce order creation
 - order retrieval through WooCommerce CRUD with HPOS enabled
 
-Production deployment is intentionally not hard-coded yet. It will be added after the actual `demo.tuluzov.com` server topology and deployment access are confirmed.
+The CD workflow is guarded by the repository variable `DEPLOY_ENABLED`, so production cannot be deployed accidentally before the target VPS is provisioned.
