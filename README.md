@@ -12,6 +12,10 @@ The project is intentionally close to real production work: WooCommerce remains 
 - Next.js Route Handlers used as a Backend-for-Frontend boundary
 - checkout and WooCommerce order creation without a real payment transaction
 - HPOS-aware WordPress/WooCommerce code and bootstrap
+- bounded/validated mutation request bodies
+- rate limiting for public cart and checkout mutations
+- Vitest unit coverage for validation, JSON parsing and rate-limit behaviour
+- Playwright Chromium coverage for the real cart/checkout UI flow
 - reproducible local Docker infrastructure
 - automated Docker integration smoke testing
 - production Docker topology with Caddy HTTPS
@@ -25,6 +29,8 @@ The project is intentionally close to real production work: WooCommerce remains 
 - MariaDB 11.4
 - Next.js 16.3.3 / React 19
 - Node.js 24
+- Vitest 5
+- Playwright 1.63
 - Docker Compose
 - Caddy 2.11
 - GitHub Actions
@@ -67,6 +73,30 @@ Browser -> Next.js BFF -> WooCommerce Store API -> WooCommerce order / HPOS
 ```
 
 Checkout uses WooCommerce's built-in offline `cheque` gateway with demo-only wording. **No real payment is collected.**
+
+The mutation boundary also rejects malformed or oversized JSON before it reaches WooCommerce. Cart mutations and checkout attempts use separate per-client rate-limit windows. The current limiter is deliberately process-local because the production design is a single Next.js instance; a horizontally scaled deployment would move this state to Redis or another shared store.
+
+## Tests
+
+```bash
+cd frontend
+npm test
+npm run e2e
+```
+
+Unit tests cover checkout validation/sanitization, bounded JSON parsing and rate-limit behaviour.
+
+The Playwright suite exercises the actual browser UI against the running Docker stack:
+
+- load the live WooCommerce catalogue
+- add a product to the cart
+- change quantity
+- remove a product
+- open checkout
+- submit the demo checkout form
+- verify that a WooCommerce order is created
+
+CI keeps Playwright traces/screenshots/videos only when a browser test fails.
 
 ## Production target
 
@@ -129,6 +159,7 @@ Production deployment is disabled until the VPS and GitHub production secrets/va
 ├── deploy/
 │   └── Caddyfile
 ├── frontend/
+│   ├── e2e/
 │   ├── src/app/api/cart/
 │   ├── src/app/api/checkout/
 │   ├── src/components/
@@ -153,6 +184,7 @@ GitHub Actions checks:
 
 - ESLint
 - TypeScript
+- Vitest unit tests
 - Next.js production build
 - PHP syntax
 - shell script syntax
@@ -161,8 +193,8 @@ GitHub Actions checks:
 - production frontend container build
 - full Docker runtime bootstrap
 - live WooCommerce Store API catalogue
-- BFF cart session and add-to-cart flow
-- Store API checkout and WooCommerce order creation
+- API-level BFF cart/checkout + HPOS flow
+- Playwright Chromium cart/checkout UI flow
 - order retrieval through WooCommerce CRUD with HPOS enabled
 
 The CD workflow is guarded by the repository variable `DEPLOY_ENABLED`, so production cannot be deployed accidentally before the target VPS is provisioned.
