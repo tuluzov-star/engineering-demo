@@ -1,22 +1,29 @@
 import { NextResponse } from 'next/server';
-import { getBackendHealth } from '@/lib/wordpress';
+import { getApplicationReadiness } from '@/lib/readiness';
+import { logEvent } from '@/lib/observability';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  try {
-    const backend = await getBackendHealth();
+  const readiness = await getApplicationReadiness();
+  const status = readiness.ready ? 200 : 503;
 
-    return NextResponse.json({ status: 'ok', frontend: 'nextjs', backend });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        status: 'degraded',
-        frontend: 'nextjs',
-        backend: null,
-        message: error instanceof Error ? error.message : 'Unknown backend error.',
-      },
-      { status: 503 },
-    );
+  if (!readiness.ready) {
+    logEvent('warn', 'health_degraded', {
+      route: '/api/health',
+      status,
+      outcome: 'unavailable',
+    });
   }
+
+  return NextResponse.json(
+    {
+      status: readiness.ready ? 'ok' : 'degraded',
+      frontend: 'nextjs',
+      checks: readiness.checks,
+      backend: readiness.backend,
+      timestamp: new Date().toISOString(),
+    },
+    { status },
+  );
 }
