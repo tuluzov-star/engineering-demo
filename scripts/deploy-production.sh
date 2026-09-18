@@ -144,6 +144,11 @@ on_exit() {
 
 trap on_exit EXIT HUP INT TERM
 
+if [ -n "$PREVIOUS_RELEASE" ] && [ -f "$PREVIOUS_RELEASE/docker-compose.production.yml" ]; then
+  printf '%s\n' 'Creating a pre-deployment database/uploads backup...'
+  sh "$RELEASE_DIR/scripts/backup-production.sh" "$DEPLOY_ROOT"
+fi
+
 printf '%s\n' "Deploying release $RELEASE_SHA..."
 activate_release "$RELEASE_DIR"
 ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
