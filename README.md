@@ -16,7 +16,9 @@ The project is intentionally close to real production work: WooCommerce remains 
 - rate limiting for public cart and checkout mutations
 - separate liveness/readiness probes for WordPress and Next.js
 - structured JSON BFF request logs with request IDs and no checkout PII
-- Vitest unit coverage for validation, JSON parsing and rate-limit behaviour
+- 19 Vitest unit/component tests across validation, cache policy and commerce UI behaviour
+- axe-core WCAG A/AA checks for catalogue and checkout states
+- 60-second Next.js revalidation for the public product catalogue only
 - Playwright Chromium coverage for the real cart/checkout UI flow
 - reproducible local Docker infrastructure
 - automated Docker integration smoke testing
@@ -90,7 +92,7 @@ npm test
 npm run e2e
 ```
 
-Unit tests cover checkout validation/sanitization, bounded JSON parsing and rate-limit behaviour.
+Vitest covers checkout validation/sanitization, bounded JSON parsing, rate limiting, catalogue cache policy, AddToCartButton and CartPanel behaviour.
 
 The Playwright suite exercises the actual browser UI against the running Docker stack:
 
@@ -101,6 +103,7 @@ The Playwright suite exercises the actual browser UI against the running Docker 
 - open checkout
 - submit the demo checkout form
 - verify that a WooCommerce order is created
+- run axe-core WCAG A/AA checks on the catalogue and open checkout state
 
 CI keeps Playwright traces/screenshots/videos only when a browser test fails.
 
@@ -190,7 +193,7 @@ GitHub Actions checks:
 
 - ESLint
 - TypeScript
-- Vitest unit tests
+- 19 Vitest unit/component tests
 - Next.js production build
 - PHP syntax
 - shell script syntax

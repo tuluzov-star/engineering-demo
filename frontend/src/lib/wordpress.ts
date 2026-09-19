@@ -51,10 +51,18 @@ const internalWordPressUrl =
   process.env.NEXT_PUBLIC_WORDPRESS_URL ??
   'http://localhost:8080';
 
+export const CATALOG_REVALIDATE_SECONDS = 60;
+export const CATALOG_CACHE_TAG = 'woocommerce-products';
+
 export async function getProducts(): Promise<StoreApiProduct[]> {
   const response = await fetch(
     `${internalWordPressUrl}/wp-json/wc/store/v1/products?per_page=8&orderby=date&order=desc`,
-    { cache: 'no-store' },
+    {
+      next: {
+        revalidate: CATALOG_REVALIDATE_SECONDS,
+        tags: [CATALOG_CACHE_TAG],
+      },
+    },
   );
 
   if (!response.ok) {

@@ -3,7 +3,6 @@ import { CartProvider } from '@/components/CartProvider';
 import { ProductCard } from '@/components/ProductCard';
 import { getBackendHealth, getProducts } from '@/lib/wordpress';
 
-export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const [productsResult, healthResult] = await Promise.allSettled([

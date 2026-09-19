@@ -4,75 +4,82 @@ This file deliberately separates static checks from runtime proof. A code path i
 
 ## Confirmed by GitHub Actions
 
-### Static, unit and build checks
+### Static, unit and component checks
 
-- PHP syntax: `engineering-demo-api.php`
-- PHP syntax: `seed-products.php`
-- PHP syntax: `configure-store.php`
-- PHP syntax: `verify-order.php`
+- PHP syntax for plugin/bootstrap helper files
 - shell syntax for bootstrap/deploy/backup/rollback scripts
 - local and production Docker Compose configuration
 - Caddy configuration
 - frontend dependency installation
 - ESLint
 - TypeScript type-check
-- 12 Vitest unit tests across checkout validation, bounded JSON parsing and rate limiting
+- 19 Vitest tests across six suites:
+  - checkout normalization/validation
+  - bounded JSON request parsing
+  - rate limiting
+  - catalogue cache/readiness fetch policy
+  - AddToCartButton component behaviour
+  - CartPanel controls and checkout success
 - Next.js production build
 - production frontend Docker image build
 
 ### Docker/API runtime proof
 
-The automated integration job successfully performs the following on a clean GitHub-hosted runner:
+The automated integration job successfully:
 
 - installs and boots MariaDB, WordPress, WooCommerce and Next.js
 - enables HPOS and seeds four virtual WooCommerce products
-- verifies WordPress `/live` returns process liveness
-- verifies WordPress `/ready` confirms database, WooCommerce and HPOS readiness
-- verifies Next.js `/api/live` returns frontend liveness
-- verifies Next.js `/api/ready` confirms backend and Store API readiness
-- verifies the backward-compatible `/health` endpoints remain healthy
-- loads the live Store API catalogue and Next.js frontend
-- creates a cart session, adds quantity 2 and completes Store API checkout
-- retrieves the created order through WooCommerce CRUD with HPOS enabled
-- verifies caller-supplied `X-Request-ID` is returned by BFF mutation responses
-- verifies structured `http_request` JSON records for cart and checkout appear in frontend logs
+- verifies WordPress and Next.js liveness/readiness
+- verifies backward-compatible health endpoints
+- loads the live Store API catalogue and frontend
+- creates a cart, adds quantity 2 and completes Store API checkout
+- retrieves the order through WooCommerce CRUD with HPOS enabled
+- verifies X-Request-ID propagation and structured BFF logs
 - verifies the checkout test email does not appear in frontend logs
 
-### Browser runtime proof
+### Browser and accessibility proof
 
 Playwright 1.63 runs Chromium against the same live Docker stack.
 
 Confirmed browser flows:
 
-- public page hydration
-- backend status visibility
+- public page hydration and backend status
 - add-to-cart
 - quantity increase
 - item removal
-- checkout form opening
-- checkout submission through the BFF
+- checkout opening/submission
 - WooCommerce order ID/status shown in the UI
 
-Failure-only Playwright traces, screenshots and video are uploaded as GitHub Actions artifacts.
+Axe-core runs automated WCAG 2 A/AA and WCAG 2.1 A/AA checks against:
+
+- the loaded catalogue page
+- the page with checkout form open
+
+The current CI run reports zero automated axe violations for those two states.
+
+This is automated coverage, not a claim of full manual accessibility certification.
+
+## Catalogue caching contract
+
+Only the public product catalogue is cached.
+
+- Next.js fetch revalidation: 60 seconds
+- cache tag: `woocommerce-products`
+- Store API readiness: `no-store`
+- backend health/readiness: `no-store`
+- cart/checkout BFF operations: `no-store`
+
+The 60-second catalogue snapshot is presentation data only. WooCommerce remains authoritative during add-to-cart and checkout, so stale catalogue data cannot itself create an invalid order.
+
+The cache tag is reserved for future explicit invalidation (for example, a signed webhook) without requiring that complexity for the current demo.
 
 ## Observability contract
 
-BFF commerce records are emitted as single-line JSON to stdout.
+BFF commerce records are emitted as single-line JSON to stdout with technical metadata only: timestamp, level, service, event, request ID, static route, status, outcome, duration, upstream status and technical error code.
 
-The structured record is intentionally limited to technical metadata such as:
+Checkout values, email, address, IP address and Cart-Token are not passed to the structured logger.
 
-- timestamp / level / service / event
-- request ID
-- static route name
-- HTTP status
-- outcome
-- duration
-- upstream status
-- technical error code
-
-Checkout form values, email, address, IP address and WooCommerce Cart-Token are not passed to the structured logger.
-
-## API hardening confirmed by tests/build/runtime
+## API hardening
 
 - cart mutation JSON bodies are bounded to 2 KiB
 - checkout JSON bodies are bounded to 12 KiB
@@ -80,39 +87,23 @@ Checkout form values, email, address, IP address and WooCommerce Cart-Token are 
 - oversized JSON returns 413
 - cart mutations are limited to 40 requests/minute per derived client address
 - checkout is limited to 8 attempts/10 minutes per derived client address
-- rate-limit metadata is returned in response headers
-- checkout inputs are normalized and validated before forwarding to WooCommerce
+- checkout is normalized and validated before forwarding to WooCommerce
 
-The limiter is intentionally process-local for the current single-instance demo architecture. Horizontal scaling would require shared state such as Redis/KV.
+The limiter is intentionally process-local for the current single-instance demo. Horizontal scaling would require shared state such as Redis/KV.
 
 ## Confirmed against the existing hosting account
 
-Read-only and temporary deployment diagnostics were run against the current REG.RU shared-hosting account.
-
-Confirmed:
-
-- AlmaLinux 8.10
-- PHP 8.2-8.5 and WP-CLI available
-- no Docker daemon available to the hosting user
-- system Node.js 10.24.0
-- verified user-space Node.js 24.21.0 binary can execute
-- Phusion Passenger 6.2.0 is loaded by Apache
-- hosting-generated Passenger configuration is Python-oriented
-- Apache rejects `PassengerAppType node` in `.htaccess` as `not allowed here`
-- `demo.tuluzov.com` was not repurposed
-- `lab.tuluzov.com` was returned to its original HTTP 200 placeholder after temporary tests
+The current REG.RU shared-hosting account was inspected and restored after temporary diagnostics. It is not used as the production Next.js target, and `demo.tuluzov.com` was not repurposed.
 
 ## Production delivery code prepared but not yet live-proven
 
-Production Compose now uses frontend readiness rather than simple process liveness. The deployment script waits for both internal frontend readiness and public HTTPS readiness before advancing a release.
-
-Production HTTPS, DNS, backup restoration and rollback are still not claimed as live-verified until the VPS is provisioned.
+Production Compose and deployment promotion use dependency-aware readiness. Production HTTPS, DNS, backup restoration and rollback are not claimed as live-verified until a VPS is provisioned.
 
 ## Deliberately not claimed
 
 - application/test code does not query WooCommerce HPOS tables directly; it uses WooCommerce CRUD
 - Playwright currently covers Chromium only
-- dedicated accessibility and performance measurements have not yet been run
+- axe is automated accessibility coverage, not manual assistive-technology testing
 - production HTTPS, DNS, backup restoration and rollback have not yet been executed on the target VPS
 
 No committed environment secrets are used, and no WordPress or WooCommerce core files are modified.
