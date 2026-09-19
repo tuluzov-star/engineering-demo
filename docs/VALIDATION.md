@@ -6,22 +6,19 @@ This file deliberately separates static checks from runtime proof. A code path i
 
 ### Static, unit and component checks
 
-- PHP syntax for plugin/bootstrap helper files
-- shell syntax for bootstrap/deploy/backup/rollback scripts
+- PHP syntax for plugin/bootstrap/helper files
+- shell syntax for bootstrap/performance/deploy/backup/rollback scripts
 - local and production Docker Compose configuration
 - Caddy configuration
 - frontend dependency installation
 - ESLint
 - TypeScript type-check
-- 19 Vitest tests across six suites:
-  - checkout normalization/validation
-  - bounded JSON request parsing
-  - rate limiting
-  - catalogue cache/readiness fetch policy
-  - AddToCartButton component behaviour
-  - CartPanel controls and checkout success
+- 19 Vitest tests across six suites
+- 7 PHPUnit 11.5 contract tests / 38 assertions for the custom WordPress API plugin
 - Next.js production build
 - production frontend Docker image build
+
+The PHPUnit suite is deliberately isolated: it stubs only the external WordPress/WooCommerce framework boundary and tests this plugin's own REST registration, HPOS compatibility declaration, liveness/readiness and degraded dependency behaviour. It is not presented as a replacement for the separate live Docker integration test.
 
 ### Docker/API runtime proof
 
@@ -50,14 +47,37 @@ Confirmed browser flows:
 - checkout opening/submission
 - WooCommerce order ID/status shown in the UI
 
-Axe-core runs automated WCAG 2 A/AA and WCAG 2.1 A/AA checks against:
-
-- the loaded catalogue page
-- the page with checkout form open
-
-The current CI run reports zero automated axe violations for those two states.
+Axe-core runs automated WCAG 2 A/AA and WCAG 2.1 A/AA checks against the loaded catalogue and the open checkout state. The current CI run reports zero automated axe violations for those two states.
 
 This is automated coverage, not a claim of full manual accessibility certification.
+
+## Production performance budget
+
+Performance is measured against the **production Docker target**, not the development server.
+
+The test starts the same standalone Next.js Docker stage used by production, attaches it to the live WordPress/WooCommerce Docker network and measures it with Chromium.
+
+Versioned budgets:
+
+- TTFB <= 1000 ms
+- LCP <= 3000 ms
+- CLS <= 0.1
+- load event <= 4000 ms
+- total encoded transfer <= 1,500,000 bytes
+- script encoded transfer <= 800,000 bytes
+- DOM nodes <= 700
+
+Measured in the successful GitHub Actions run on 2026-09-19:
+
+- TTFB: ~227.3 ms
+- LCP: 352 ms
+- CLS: 0
+- load event: ~367.4 ms
+- total encoded transfer: 149,759 bytes
+- script encoded transfer: 134,413 bytes
+- DOM nodes: 129
+
+These numbers describe that CI environment/run and are not presented as universal end-user latency. The budget is the durable regression guard; each run uploads `performance-results.json` as an artifact.
 
 ## Catalogue caching contract
 
@@ -69,9 +89,7 @@ Only the public product catalogue is cached.
 - backend health/readiness: `no-store`
 - cart/checkout BFF operations: `no-store`
 
-The 60-second catalogue snapshot is presentation data only. WooCommerce remains authoritative during add-to-cart and checkout, so stale catalogue data cannot itself create an invalid order.
-
-The cache tag is reserved for future explicit invalidation (for example, a signed webhook) without requiring that complexity for the current demo.
+The 60-second catalogue snapshot is presentation data only. WooCommerce remains authoritative during add-to-cart and checkout.
 
 ## Observability contract
 
@@ -101,9 +119,11 @@ Production Compose and deployment promotion use dependency-aware readiness. Prod
 
 ## Deliberately not claimed
 
+- isolated PHPUnit tests are not a full WordPress/WooCommerce integration suite
 - application/test code does not query WooCommerce HPOS tables directly; it uses WooCommerce CRUD
 - Playwright currently covers Chromium only
 - axe is automated accessibility coverage, not manual assistive-technology testing
+- one GitHub runner measurement is not a field-performance claim
 - production HTTPS, DNS, backup restoration and rollback have not yet been executed on the target VPS
 
 No committed environment secrets are used, and no WordPress or WooCommerce core files are modified.

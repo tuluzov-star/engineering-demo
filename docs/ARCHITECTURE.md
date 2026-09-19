@@ -93,11 +93,12 @@ The current limiter stores buckets in the Next.js process. That is an intentiona
 
 ## Test architecture
 
-The test pyramid currently has three layers:
+The test pyramid currently has four complementary layers:
 
-1. **Vitest unit/component tests** for validation, request parsing, rate limits, catalogue cache policy and key commerce UI states.
-2. **API/Docker smoke test** for Store API cart, checkout, WooCommerce order creation, readiness, logging and HPOS-enabled CRUD retrieval.
-3. **Playwright Chromium tests** against the live Docker stack for the real browser cart/checkout interaction plus axe-core WCAG A/AA checks.
+1. **PHPUnit contract tests** for the custom WordPress REST plugin in isolation from framework internals.
+2. **Vitest unit/component tests** for validation, request parsing, rate limits, catalogue cache policy and key commerce UI states.
+3. **API/Docker smoke test** for Store API cart, checkout, WooCommerce order creation, readiness, logging and HPOS-enabled CRUD retrieval.
+4. **Playwright Chromium tests** against the live Docker stack for the real browser cart/checkout interaction plus axe-core WCAG A/AA checks.
 
 Browser test traces, screenshots and video are retained only when the Playwright job fails. Automated axe checks supplement, but do not replace, manual accessibility review.
 
@@ -122,6 +123,14 @@ The demo separates process liveness from dependency readiness.
 Production container/deployment promotion uses readiness rather than liveness.
 
 Commerce BFF routes emit one-line JSON records to stdout with request ID, static route name, status, outcome, duration and upstream status/error code. Checkout fields, email, address, IP and Cart-Token are not sent to the structured logger.
+
+## Performance strategy
+
+Performance is measured against the production Docker target rather than the development server. The test container is connected to the same live WordPress/WooCommerce Docker network used by the integration suite.
+
+The committed budget covers TTFB, LCP, CLS, load-event timing, encoded transfer size, JavaScript transfer size and DOM node count. CI uploads the measured JSON result for each run.
+
+This deliberately separates a repeatable regression budget from real-user monitoring: CI protects against obvious regressions, while production field metrics would still be needed for user-perceived performance after deployment.
 
 ## Production deployment design
 
@@ -182,8 +191,8 @@ The project therefore does not use shared-hosting workarounds such as a Python-t
 
 ## Next technical milestones
 
-1. Add performance measurements and budgets.
-2. Add PHPUnit coverage for the custom WordPress plugin.
-3. Produce the architecture diagram and README portfolio visuals.
-4. Add release tags/changelog.
+1. Produce the architecture diagram and README portfolio visuals.
+2. Document the main engineering trade-offs as a portfolio case study.
+3. Add release tags/changelog.
+4. Add one real business integration extracted from an existing WordPress/WooCommerce project.
 5. Provision the production VPS when the deployment account is ready.

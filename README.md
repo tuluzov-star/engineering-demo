@@ -17,12 +17,14 @@ The project is intentionally close to real production work: WooCommerce remains 
 - separate liveness/readiness probes for WordPress and Next.js
 - structured JSON BFF request logs with request IDs and no checkout PII
 - 19 Vitest unit/component tests across validation, cache policy and commerce UI behaviour
+- 7 PHPUnit contract tests / 38 assertions for the custom WordPress API plugin
 - axe-core WCAG A/AA checks for catalogue and checkout states
 - 60-second Next.js revalidation for the public product catalogue only
 - Playwright Chromium coverage for the real cart/checkout UI flow
 - reproducible local Docker infrastructure
 - automated Docker integration smoke testing
 - production Docker topology with Caddy HTTPS
+- production performance budgets measured against the standalone Docker target
 - release-based GitHub Actions deployment, backup and rollback workflows
 
 ## Stack
@@ -105,7 +107,25 @@ The Playwright suite exercises the actual browser UI against the running Docker 
 - verify that a WooCommerce order is created
 - run axe-core WCAG A/AA checks on the catalogue and open checkout state
 
-CI keeps Playwright traces/screenshots/videos only when a browser test fails.
+CI keeps Playwright traces/screenshots/videos only when a browser test fails. It also uploads a JSON performance result for the production Docker target.
+
+## Performance budget
+
+The budget is measured against the production standalone Next.js Docker target connected to the live Docker WordPress/WooCommerce backend.
+
+Current limits:
+
+- TTFB <= 1000 ms
+- LCP <= 3000 ms
+- CLS <= 0.1
+- load event <= 4000 ms
+- total encoded transfer <= 1.5 MB
+- script encoded transfer <= 800 KB
+- DOM nodes <= 700
+
+A successful GitHub Actions run on 2026-09-19 measured approximately **227 ms TTFB, 352 ms LCP, 0 CLS, 367 ms load, 150 KB total transfer, 134 KB JavaScript and 129 DOM nodes**.
+
+Those values are a CI measurement, not a field-performance guarantee. The committed budget is the regression guard.
 
 ## Production target
 
@@ -196,6 +216,7 @@ GitHub Actions checks:
 - 19 Vitest unit/component tests
 - Next.js production build
 - PHP syntax
+- PHPUnit 11.5 plugin contract tests
 - shell script syntax
 - local and production Docker Compose configuration
 - Caddy configuration
@@ -207,5 +228,6 @@ GitHub Actions checks:
 - order retrieval through WooCommerce CRUD with HPOS enabled
 - WordPress/Next.js liveness and dependency-aware readiness
 - X-Request-ID propagation and structured commerce log records without checkout email PII
+- production performance budget (TTFB, LCP, CLS, load, transfer size and DOM size)
 
 The CD workflow is guarded by the repository variable `DEPLOY_ENABLED`, so production cannot be deployed accidentally before the target VPS is provisioned.

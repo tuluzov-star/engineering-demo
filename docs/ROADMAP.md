@@ -24,7 +24,7 @@
 
 ## Phase 3 — Engineering depth
 
-- [ ] PHPUnit for the WordPress plugin
+- [x] isolated PHPUnit contract tests for the WordPress plugin
 - [x] frontend unit tests
 - [x] frontend component tests
 - [x] Playwright end-to-end smoke tests
@@ -55,5 +55,5 @@
 - [ ] short demo video
 - [ ] public README screenshots
 - [ ] documented trade-offs
-- [ ] performance measurements and budgets
+- [x] performance measurements and budgets
 - [ ] one real business integration extracted from an existing WordPress/WooCommerce project
