@@ -83,6 +83,8 @@ jobs:
   integration:
     name: Docker commerce + browser + performance
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 35
     needs: [frontend, backend, compose]
     steps:
@@ -113,6 +115,18 @@ jobs:
           NEXT_PUBLIC_WORDPRESS_URL: http://127.0.0.1:8080
           PERFORMANCE_BASE_URL: http://127.0.0.1:3001
         run: sh scripts/performance-test.sh
+      - name: Commit README-ready production screenshots
+        if: github.event_name == 'push' && github.ref_name == 'feature/production-portfolio-captures'
+        run: |
+          if git ls-files --error-unmatch docs/images/portfolio-overview.png >/dev/null 2>&1; then
+            echo "Portfolio screenshots are already tracked."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/images/portfolio-overview.png docs/images/portfolio-checkout.png docs/images/portfolio-mobile.png
+          git commit -m "docs: add production portfolio screenshots"
+          git push origin "HEAD:\${GITHUB_REF_NAME}"
       - name: Upload production portfolio screenshots
         if: always()
         uses: actions/upload-artifact@v4
