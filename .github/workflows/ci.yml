@@ -50,6 +50,7 @@ jobs:
       - run: bash -n scripts/init.sh
       - run: bash -n scripts/smoke-test.sh
       - run: bash -n scripts/performance-test.sh
+      - run: bash -n scripts/render-demo-video.sh
       - run: bash -n scripts/backup-production.sh
       - run: bash -n scripts/deploy-production.sh
       - run: bash -n scripts/rollback-production.sh
@@ -107,6 +108,8 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
         run: npm run e2e
+      - name: Verify FFmpeg for portfolio video
+        run: ffmpeg -version >/dev/null
       - name: Run production performance budget
         env:
           WORDPRESS_INTERNAL_URL: http://127.0.0.1:8080
@@ -121,6 +124,16 @@ jobs:
           path: frontend/portfolio-screenshots
           if-no-files-found: ignore
           retention-days: 7
+      - name: Upload production demo video
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-demo-video
+          path: |
+            frontend/portfolio-video/engineering-demo.mp4
+            frontend/portfolio-video/engineering-demo.webm
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload performance result
         if: always()
         uses: actions/upload-artifact@v4
