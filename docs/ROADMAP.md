@@ -47,13 +47,14 @@
 - [ ] point `lab.tuluzov.com` and `cms.lab.tuluzov.com` to VPS
 - [ ] first live production deployment
 - [ ] enable guarded CD after first manual verification
-- [ ] release tags and changelog
+- [x] changelog
+- [ ] release tag
 
 ## Phase 5 — Portfolio proof
 
-- [ ] architecture diagram
+- [x] architecture diagram
 - [ ] short demo video
 - [ ] public README screenshots
-- [ ] documented trade-offs
+- [x] documented trade-offs
 - [x] performance measurements and budgets
 - [ ] one real business integration extracted from an existing WordPress/WooCommerce project
