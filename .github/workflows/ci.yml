@@ -84,8 +84,6 @@ jobs:
   integration:
     name: Docker commerce + browser + performance
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     timeout-minutes: 35
     needs: [frontend, backend, compose]
     steps:
@@ -129,20 +127,6 @@ jobs:
           path: frontend/portfolio-screenshots
           if-no-files-found: ignore
           retention-days: 7
-      - name: Commit final portfolio MP4 once
-        if: github.event_name == 'push' && github.ref_name == 'feature/portfolio-demo-video'
-        run: |
-          if git ls-files --error-unmatch docs/media/engineering-demo.mp4 >/dev/null 2>&1; then
-            echo "Portfolio MP4 is already tracked."
-            exit 0
-          fi
-          mkdir -p docs/media
-          cp frontend/portfolio-video/engineering-demo.mp4 docs/media/engineering-demo.mp4
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/media/engineering-demo.mp4
-          git commit -m "docs: add production demo video"
-          git push origin HEAD:feature/portfolio-demo-video
       - name: Upload production demo video
         if: always()
         uses: actions/upload-artifact@v4
