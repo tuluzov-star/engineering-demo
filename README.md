@@ -21,7 +21,7 @@ This is not a theme demo. It is a compact example of how I would design boundari
 | Accessibility | axe WCAG A/AA checks, zero automated violations in tested states |
 | Observability | request IDs + structured JSON logs without checkout PII |
 | Delivery | production Compose + Caddy + backup + rollback + guarded CD |
-| Performance | 245 ms TTFB / 412 ms LCP / 0 CLS in the latest recorded CI run |
+| Performance | 245 ms TTFB / 412 ms LCP / 0 CLS in a representative post-polish CI run |
 
 ## Production UI captures
 
