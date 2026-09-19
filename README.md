@@ -1,16 +1,69 @@
 # Tuluzov Engineering Demo
 
-A portfolio-grade headless commerce playground that connects a **WordPress + WooCommerce backend** to a **Next.js frontend/BFF**, runs locally with **Docker Compose**, and is verified by **GitHub Actions CI**.
+[![CI](https://github.com/tuluzov-star/engineering-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/tuluzov-star/engineering-demo/actions/workflows/ci.yml)
 
-The project is intentionally close to real production work: WooCommerce remains the commerce source of truth, WordPress is extended through a small public REST plugin rather than core modifications, and the frontend consumes supported APIs.
+A production-shaped **WordPress + WooCommerce + Next.js** engineering case: headless catalogue, cart, checkout, HPOS, Docker, CI, accessibility, observability, performance budgets, backup and rollback.
+
+This is not a theme demo. It is a compact example of how I would design boundaries around an existing WooCommerce domain while adding a modern frontend and delivery layer without duplicating commerce rules or patching WordPress/WooCommerce core.
+
+> Live VPS deployment is intentionally pending until the personal hosting environment is available. Everything described as verified below is already exercised by CI against a real Docker WordPress/WooCommerce stack.
+
+## Reviewer snapshot
+
+| Area | Verified result |
+| --- | --- |
+| Backend | WordPress 7.1.x + WooCommerce 11.1.0 + HPOS |
+| Frontend | Next.js 16.3.3 / React 19 / Node 24 |
+| Commerce | real Store API cart + checkout + WooCommerce order creation |
+| Backend tests | 7 PHPUnit tests / 38 assertions |
+| Frontend tests | 19 Vitest unit/component tests |
+| Browser | Playwright Chromium cart/checkout flow |
+| Accessibility | axe WCAG A/AA checks, zero automated violations in tested states |
+| Observability | request IDs + structured JSON logs without checkout PII |
+| Delivery | production Compose + Caddy + backup + rollback + guarded CD |
+| Performance | 227 ms TTFB / 352 ms LCP / 0 CLS in the recorded CI run |
+
+### Fast review path
+
+If you only have a few minutes:
+
+1. Read [the case study](docs/CASE_STUDY.md) for the engineering decisions and trade-offs.
+2. Open [the architecture diagram](docs/ARCHITECTURE_DIAGRAM.md).
+3. Check [validation evidence](docs/VALIDATION.md) for what is actually proven by CI.
+4. Inspect the BFF routes under `frontend/src/app/api/` and the small WordPress plugin under `backend/wp-content/plugins/engineering-demo-api/`.
+5. See [deployment design](docs/DEPLOYMENT.md) for HTTPS, backups and rollback.
+
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    U[Browser] --> N[Next.js 16]
+    U --> B[BFF Route Handlers]
+
+    N -->|catalogue GET\n60s revalidation| S[WooCommerce Store API]
+    B -->|HttpOnly Cart-Token\nvalidation / rate limit| S
+
+    S --> W[WordPress + WooCommerce]
+    N -->|readiness| A[Engineering Demo API]
+    A --> W
+    W --> M[(MariaDB / HPOS)]
+
+    B --> L[Structured JSON logs\nno checkout PII]
+
+    C[GitHub Actions] --> T[PHPUnit / Vitest / Docker / Playwright / axe / perf]
+    T --> N
+    T --> W
+```
+
+The core rule is simple: **WooCommerce remains the commerce source of truth**. Next.js can shape requests, protect the public boundary and cache presentation data, but it does not reimplement stock, pricing, cart rules or order creation.
 
 ## What it demonstrates
 
 - headless WooCommerce product catalogue
 - Store API cart with add/update/remove operations
 - server-side WooCommerce `Cart-Token` handling via an HttpOnly cookie
-- Next.js Route Handlers used as a Backend-for-Frontend boundary
-- checkout and WooCommerce order creation without a real payment transaction
+- Next.js Route Handlers as a Backend-for-Frontend boundary
+- checkout and real WooCommerce order creation without a real payment transaction
 - HPOS-aware WordPress/WooCommerce code and bootstrap
 - bounded/validated mutation request bodies
 - rate limiting for public cart and checkout mutations
@@ -21,7 +74,7 @@ The project is intentionally close to real production work: WooCommerce remains 
 - axe-core WCAG A/AA checks for catalogue and checkout states
 - 60-second Next.js revalidation for the public product catalogue only
 - Playwright Chromium coverage for the real cart/checkout UI flow
-- reproducible local Docker infrastructure
+- reproducible Docker infrastructure
 - automated Docker integration smoke testing
 - production Docker topology with Caddy HTTPS
 - production performance budgets measured against the standalone Docker target
@@ -35,8 +88,10 @@ The project is intentionally close to real production work: WooCommerce remains 
 - MariaDB 11.4
 - Next.js 16.3.3 / React 19
 - Node.js 24
+- PHPUnit 11.5
 - Vitest 5
 - Playwright 1.63
+- axe-core
 - Docker Compose
 - Caddy 2.11
 - GitHub Actions
@@ -72,7 +127,7 @@ Open:
 
 Before exposing the environment publicly, replace the demo credentials in `.env`.
 
-## Cart and checkout architecture
+## Cart and checkout boundary
 
 The browser never receives the WooCommerce `Cart-Token` directly. It calls same-origin Next.js routes; the BFF talks to WooCommerce and stores the token in an `HttpOnly`, `SameSite=Lax` cookie.
 
@@ -84,9 +139,11 @@ Browser -> Next.js BFF -> WooCommerce Store API -> WooCommerce order / HPOS
 
 Checkout uses WooCommerce's built-in offline `cheque` gateway with demo-only wording. **No real payment is collected.**
 
-The mutation boundary also rejects malformed or oversized JSON before it reaches WooCommerce. Cart mutations and checkout attempts use separate per-client rate-limit windows. The current limiter is deliberately process-local because the production design is a single Next.js instance; a horizontally scaled deployment would move this state to Redis or another shared store.
+The mutation boundary rejects malformed or oversized JSON before it reaches WooCommerce. Cart mutations and checkout attempts use separate per-client rate-limit windows. The current limiter is deliberately process-local because the prepared production design is a single Next.js instance; horizontal scaling would move this state to Redis/KV.
 
 ## Tests
+
+Frontend:
 
 ```bash
 cd frontend
@@ -94,42 +151,48 @@ npm test
 npm run e2e
 ```
 
-Vitest covers checkout validation/sanitization, bounded JSON parsing, rate limiting, catalogue cache policy, AddToCartButton and CartPanel behaviour.
+Backend contract tests:
 
-The Playwright suite exercises the actual browser UI against the running Docker stack:
+```bash
+phpunit --configuration backend/phpunit.xml.dist
+```
 
-- load the live WooCommerce catalogue
-- add a product to the cart
-- change quantity
-- remove a product
-- open checkout
-- submit the demo checkout form
-- verify that a WooCommerce order is created
-- run axe-core WCAG A/AA checks on the catalogue and open checkout state
+CI covers:
 
-CI keeps Playwright traces/screenshots/videos only when a browser test fails. It also uploads a JSON performance result for the production Docker target.
+- PHP plugin contract behaviour
+- validation and bounded JSON parsing
+- rate limiting
+- catalogue cache policy
+- React cart/checkout component behaviour
+- live Docker WordPress/WooCommerce bootstrap
+- Store API cart and checkout
+- WooCommerce order creation/retrieval with HPOS enabled
+- browser cart/checkout interaction
+- automated accessibility checks
+- structured logging/request-ID propagation
+- production performance budgets
+
+CI keeps Playwright traces/screenshots/videos only when a browser test fails and uploads a JSON performance result for the production Docker target.
 
 ## Performance budget
 
 The budget is measured against the production standalone Next.js Docker target connected to the live Docker WordPress/WooCommerce backend.
 
-Current limits:
+| Metric | Budget | Recorded CI run |
+| --- | ---: | ---: |
+| TTFB | <= 1000 ms | ~227 ms |
+| LCP | <= 3000 ms | 352 ms |
+| CLS | <= 0.1 | 0 |
+| Load event | <= 4000 ms | ~367 ms |
+| Total encoded transfer | <= 1.5 MB | 149,759 B |
+| Script encoded transfer | <= 800 KB | 134,413 B |
+| DOM nodes | <= 700 | 129 |
 
-- TTFB <= 1000 ms
-- LCP <= 3000 ms
-- CLS <= 0.1
-- load event <= 4000 ms
-- total encoded transfer <= 1.5 MB
-- script encoded transfer <= 800 KB
-- DOM nodes <= 700
-
-A successful GitHub Actions run on 2026-09-19 measured approximately **227 ms TTFB, 352 ms LCP, 0 CLS, 367 ms load, 150 KB total transfer, 134 KB JavaScript and 129 DOM nodes**.
-
-Those values are a CI measurement, not a field-performance guarantee. The committed budget is the regression guard.
+The measured values are from a GitHub-hosted CI run on 2026-09-19, not a claim about real-user field latency. The committed budget is the regression guard.
 
 ## Production target
 
-The production topology is prepared for a small Linux VPS:
+Prepared topology:
 
 ```text
 Internet
@@ -147,11 +210,11 @@ Next.js :3000             WordPress :80
           MariaDB
 ```
 
-The existing `demo.tuluzov.com` remains the independent WordPress/WooCommerce plugin-demo site.
+The existing `demo.tuluzov.com` remains an independent WordPress/WooCommerce plugin-demo site.
 
-The current REG.RU shared-hosting account was inspected and deliberately rejected as the Next.js production target: it has no usable Docker daemon for the hosting user, and its Passenger configuration is restricted to the hosting-provided Python application type. The project does not use a Python-to-Node proxy or unmanaged background daemon as a workaround.
+The inspected shared-hosting environment was deliberately rejected as the Next.js production target after confirming that it does not provide a usable Docker daemon for the hosting user and restricts the Passenger application type. The project avoids provider-specific Python-to-Node or unmanaged-daemon workarounds.
 
-See `docs/DEPLOYMENT.md` for the VPS, DNS, GitHub environment, backup and rollback procedure.
+See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for VPS, DNS, GitHub environment, backup and rollback details.
 
 ## Useful commands
 
@@ -167,7 +230,7 @@ sh scripts/smoke-test.sh
 docker compose down
 ```
 
-`docker compose down` stops the local environment but keeps data volumes. `docker compose down -v` also deletes the database and WordPress data and should only be used when a full reset is intended.
+`docker compose down` keeps data volumes. `docker compose down -v` also deletes the database and WordPress data and should only be used for a full reset.
 
 ### Production
 
@@ -177,20 +240,21 @@ sh scripts/deploy-production.sh /opt/engineering-demo <git-sha>
 sh scripts/rollback-production.sh /opt/engineering-demo
 ```
 
-Production deployment is disabled until the VPS and GitHub production secrets/variables are configured.
+Production deployment remains disabled until the VPS and GitHub production secrets/variables are configured.
 
-## Repository structure
+## Repository map
 
 ```text
 .
 ├── backend/
+│   ├── tests/
 │   └── wp-content/plugins/engineering-demo-api/
 ├── deploy/
 │   └── Caddyfile
 ├── frontend/
 │   ├── e2e/
-│   ├── src/app/api/cart/
-│   ├── src/app/api/checkout/
+│   ├── performance/
+│   ├── src/app/api/
 │   ├── src/components/
 │   └── src/lib/
 ├── scripts/
@@ -200,34 +264,33 @@ Production deployment is disabled until the VPS and GitHub production secrets/va
 └── docker-compose.production.yml
 ```
 
-See:
+Further reading:
 
-- `docs/ARCHITECTURE.md` — design decisions
-- `docs/DEPLOYMENT.md` — production deployment and rollback
-- `docs/ROADMAP.md` — implementation stages
-- `docs/VALIDATION.md` — exact verification status
+- [CASE_STUDY.md](docs/CASE_STUDY.md) — decisions, alternatives and trade-offs
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — detailed technical architecture
+- [ARCHITECTURE_DIAGRAM.md](docs/ARCHITECTURE_DIAGRAM.md) — visual system map
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md) — production deployment and rollback
+- [ROADMAP.md](docs/ROADMAP.md) — implementation stages
+- [VALIDATION.md](docs/VALIDATION.md) — exact verification status
+- [CHANGELOG.md](CHANGELOG.md) — milestone history
 
 ## CI
 
-GitHub Actions checks:
+Every change is checked through GitHub Actions:
 
-- ESLint
-- TypeScript
+- ESLint and TypeScript
 - 19 Vitest unit/component tests
+- 7 PHPUnit contract tests / 38 assertions
 - Next.js production build
-- PHP syntax
-- PHPUnit 11.5 plugin contract tests
-- shell script syntax
-- local and production Docker Compose configuration
+- PHP and shell syntax
+- local/production Docker Compose
 - Caddy configuration
-- production frontend container build
-- full Docker runtime bootstrap
-- live WooCommerce Store API catalogue
-- API-level BFF cart/checkout + HPOS flow
-- Playwright Chromium cart/checkout UI flow
-- order retrieval through WooCommerce CRUD with HPOS enabled
-- WordPress/Next.js liveness and dependency-aware readiness
-- X-Request-ID propagation and structured commerce log records without checkout email PII
-- production performance budget (TTFB, LCP, CLS, load, transfer size and DOM size)
+- production frontend image
+- live Docker WooCommerce integration
+- Playwright Chromium commerce flow
+- axe WCAG A/AA regression checks
+- liveness/readiness
+- structured request logs without checkout PII
+- production performance budgets
 
-The CD workflow is guarded by the repository variable `DEPLOY_ENABLED`, so production cannot be deployed accidentally before the target VPS is provisioned.
+The CD workflow is guarded by `DEPLOY_ENABLED`, so production cannot be deployed accidentally before the target VPS is provisioned.
