@@ -5,54 +5,74 @@ ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 FRONTEND_DIR="$ROOT_DIR/frontend"
 PERFORMANCE_PORT=${PERFORMANCE_PORT:-3001}
 PERFORMANCE_BASE_URL=${PERFORMANCE_BASE_URL:-http://127.0.0.1:$PERFORMANCE_PORT}
-WORDPRESS_INTERNAL_URL=${WORDPRESS_INTERNAL_URL:-http://127.0.0.1:8080}
 NEXT_PUBLIC_WORDPRESS_URL=${NEXT_PUBLIC_WORDPRESS_URL:-http://127.0.0.1:8080}
+PERFORMANCE_IMAGE=${PERFORMANCE_IMAGE:-engineering-demo-performance:local}
+PERFORMANCE_CONTAINER="engineering-demo-performance-$$"
+LOG_FILE="$ROOT_DIR/performance-next.log"
 
-for command_name in curl node npm; do
+for command_name in curl docker npm; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     printf '%s\n' "Required command is missing: $command_name" >&2
     exit 1
   fi
 done
 
-cd "$FRONTEND_DIR"
+cd "$ROOT_DIR"
+docker compose version >/dev/null
 
-export WORDPRESS_INTERNAL_URL
-export NEXT_PUBLIC_WORDPRESS_URL
+wordpress_container=$(docker compose ps -q wordpress)
 
-printf '%s\n' 'Building production Next.js standalone output for performance measurement...'
-npm run build
+if [ -z "$wordpress_container" ]; then
+  printf '%s\n' 'The WordPress Docker service must be running before performance tests.' >&2
+  exit 1
+fi
 
-rm -rf .next/standalone/.next/static .next/standalone/public
-mkdir -p .next/standalone/.next
-cp -R .next/static .next/standalone/.next/static
-cp -R public .next/standalone/public
+compose_networks=$(docker inspect "$wordpress_container" --format '{{range $name, $config := .NetworkSettings.Networks}}{{$name}} {{end}}')
+set -- $compose_networks
+compose_network=${1:-}
 
-printf '%s\n' "Starting production Next.js on $PERFORMANCE_BASE_URL..."
-HOSTNAME=127.0.0.1 PORT="$PERFORMANCE_PORT" \
-  WORDPRESS_INTERNAL_URL="$WORDPRESS_INTERNAL_URL" \
-  NEXT_PUBLIC_WORDPRESS_URL="$NEXT_PUBLIC_WORDPRESS_URL" \
-  node .next/standalone/server.js > "$ROOT_DIR/performance-next.log" 2>&1 &
-server_pid=$!
+if [ -z "$compose_network" ]; then
+  printf '%s\n' 'Could not determine the Docker network used by WordPress.' >&2
+  exit 1
+fi
 
 cleanup() {
-  kill "$server_pid" >/dev/null 2>&1 || true
-  wait "$server_pid" >/dev/null 2>&1 || true
+  docker logs "$PERFORMANCE_CONTAINER" > "$LOG_FILE" 2>&1 || true
+  docker rm -f "$PERFORMANCE_CONTAINER" >/dev/null 2>&1 || true
+  docker image rm "$PERFORMANCE_IMAGE" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT HUP INT TERM
+
+printf '%s\n' 'Building the production frontend Docker target for performance measurement...'
+docker build \
+  --target production \
+  --build-arg "NEXT_PUBLIC_WORDPRESS_URL=$NEXT_PUBLIC_WORDPRESS_URL" \
+  -t "$PERFORMANCE_IMAGE" \
+  "$FRONTEND_DIR"
+
+printf '%s\n' "Starting production frontend container on $PERFORMANCE_BASE_URL..."
+docker run -d \
+  --name "$PERFORMANCE_CONTAINER" \
+  --network "$compose_network" \
+  -p "$PERFORMANCE_PORT:3000" \
+  -e WORDPRESS_INTERNAL_URL=http://wordpress \
+  -e "NEXT_PUBLIC_WORDPRESS_URL=$NEXT_PUBLIC_WORDPRESS_URL" \
+  "$PERFORMANCE_IMAGE" >/dev/null
 
 attempt=0
 until curl --fail --silent --show-error --max-time 5 "$PERFORMANCE_BASE_URL/api/ready" >/dev/null 2>&1; do
   attempt=$((attempt + 1))
 
   if [ "$attempt" -ge 30 ]; then
-    printf '%s\n' 'Production Next.js performance server did not become ready.' >&2
-    cat "$ROOT_DIR/performance-next.log" >&2 || true
+    printf '%s\n' 'Production frontend performance container did not become ready.' >&2
+    docker logs "$PERFORMANCE_CONTAINER" >&2 || true
     exit 1
   fi
 
   sleep 1
 done
+
+cd "$FRONTEND_DIR"
 
 printf '%s\n' 'Running production performance budget...'
 PERFORMANCE_BASE_URL="$PERFORMANCE_BASE_URL" npm run performance
