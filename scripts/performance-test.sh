@@ -82,3 +82,6 @@ cat "$FRONTEND_DIR/performance-results.json"
 
 printf '%s\n' 'Capturing production portfolio screenshots...'
 PORTFOLIO_BASE_URL="$PERFORMANCE_BASE_URL" npm run portfolio:capture
+
+printf '%s\n' 'Rendering production demo video...'
+PORTFOLIO_BASE_URL="$PERFORMANCE_BASE_URL" sh "$ROOT_DIR/scripts/render-demo-video.sh"

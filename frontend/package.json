@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "performance": "playwright test --config=playwright.performance.config.ts",
-    "portfolio:capture": "playwright test --config=playwright.portfolio.config.ts"
+    "portfolio:capture": "playwright test --config=playwright.portfolio.config.ts",
+    "portfolio:video": "node scripts/capture-demo-video.mjs"
   },
   "dependencies": {
     "next": "16.3.3",

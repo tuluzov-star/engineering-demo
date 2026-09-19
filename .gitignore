@@ -10,3 +10,4 @@ frontend/test-results/
 *.log
 frontend/performance-results.json
 frontend/portfolio-screenshots/
+frontend/portfolio-video/
