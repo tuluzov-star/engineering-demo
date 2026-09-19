@@ -100,8 +100,7 @@ The core rule is simple: **WooCommerce remains the commerce source of truth**. N
 - reproducible Docker infrastructure
 - automated Docker integration smoke testing
 - production Docker topology with Caddy HTTPS
-- production performance budgets
-- reproducible production demo video generation measured against the standalone Docker target
+- production performance budgets measured against the standalone Docker target
 - reproducible Playwright + FFmpeg production demo video
 - release-based GitHub Actions deployment, backup and rollback workflows
 
