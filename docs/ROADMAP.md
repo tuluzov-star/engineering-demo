@@ -54,7 +54,7 @@
 
 - [x] architecture diagram
 - [ ] short demo video
-- [ ] public README screenshots
+- [x] public README screenshots
 - [x] documented trade-offs
 - [x] performance measurements and budgets
 - [ ] one real business integration extracted from an existing WordPress/WooCommerce project
