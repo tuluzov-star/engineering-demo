@@ -67,7 +67,7 @@ Versioned budgets:
 - script encoded transfer <= 800,000 bytes
 - DOM nodes <= 700
 
-Measured in the latest successful production-target GitHub Actions run on 2026-09-19:
+Measured in a successful post-polish production-target GitHub Actions run on 2026-09-19:
 
 - TTFB: 245 ms
 - LCP: 412 ms
