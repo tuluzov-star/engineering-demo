@@ -48,7 +48,7 @@
 - [ ] first live production deployment
 - [ ] enable guarded CD after first manual verification
 - [x] changelog
-- [ ] release tag
+- [x] release tag `v0.3.0`
 
 ## Phase 5 — Portfolio proof
 
