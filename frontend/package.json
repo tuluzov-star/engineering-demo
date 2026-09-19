@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "performance": "playwright test --config=playwright.performance.config.ts"
+    "performance": "playwright test --config=playwright.performance.config.ts",
+    "portfolio:capture": "playwright test --config=playwright.portfolio.config.ts"
   },
   "dependencies": {
     "next": "16.3.3",
