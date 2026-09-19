@@ -40,6 +40,7 @@ services:
     volumes:
       - wordpress_data:/var/www/html
       - ./backend/wp-content/plugins/engineering-demo-api:/var/www/html/wp-content/plugins/engineering-demo-api:ro
+      - ./backend/wp-content/plugins/engineering-demo-order-audit:/var/www/html/wp-content/plugins/engineering-demo-order-audit:ro
     expose:
       - "80"
     networks:
@@ -78,6 +79,7 @@ services:
     volumes:
       - wordpress_data:/var/www/html
       - ./backend/wp-content/plugins/engineering-demo-api:/var/www/html/wp-content/plugins/engineering-demo-api:ro
+      - ./backend/wp-content/plugins/engineering-demo-order-audit:/var/www/html/wp-content/plugins/engineering-demo-order-audit:ro
       - ./scripts:/scripts:ro
     working_dir: /var/www/html
     networks:

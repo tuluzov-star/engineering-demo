@@ -57,4 +57,4 @@
 - [x] public README screenshots
 - [x] documented trade-offs
 - [x] performance measurements and budgets
-- [ ] one real business integration extracted from an existing WordPress/WooCommerce project
+- [x] one real business integration extracted from an existing WordPress/WooCommerce project — HPOS order-status audit trail

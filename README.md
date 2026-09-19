@@ -102,6 +102,7 @@ The core rule is simple: **WooCommerce remains the commerce source of truth**. N
 - production Docker topology with Caddy HTTPS
 - production performance budgets measured against the standalone Docker target
 - reproducible Playwright + FFmpeg production demo video
+- HPOS-compatible order-status audit case extracted from a real WooCommerce support problem
 - release-based GitHub Actions deployment, backup and rollback workflows
 
 ## Stack
@@ -298,6 +299,7 @@ Further reading:
 - [DEPLOYMENT.md](docs/DEPLOYMENT.md) — production deployment and rollback
 - [ROADMAP.md](docs/ROADMAP.md) — implementation stages
 - [VALIDATION.md](docs/VALIDATION.md) — exact verification status
+- [REAL_WORLD_INTEGRATION.md](docs/REAL_WORLD_INTEGRATION.md) — anonymized WooCommerce order-status audit case
 - [CHANGELOG.md](CHANGELOG.md) — milestone history
 
 ## CI

@@ -39,13 +39,16 @@ jobs:
           php-version: '8.3'
           tools: phpunit:11.5
       - run: php -l backend/wp-content/plugins/engineering-demo-api/engineering-demo-api.php
+      - run: php -l backend/wp-content/plugins/engineering-demo-order-audit/engineering-demo-order-audit.php
       - run: php -l backend/tests/bootstrap.php
       - run: php -l backend/tests/EngineeringDemoApiTest.php
+      - run: php -l backend/tests/EngineeringDemoOrderAuditTest.php
       - name: Run isolated plugin contract tests
         run: phpunit --configuration backend/phpunit.xml.dist
       - run: php -l scripts/seed-products.php
       - run: php -l scripts/configure-store.php
       - run: php -l scripts/verify-order.php
+      - run: php -l scripts/verify-order-audit.php
       - run: bash -n scripts/bootstrap-wp.sh
       - run: bash -n scripts/init.sh
       - run: bash -n scripts/smoke-test.sh

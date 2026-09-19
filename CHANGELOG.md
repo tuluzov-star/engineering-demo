@@ -2,14 +2,17 @@
 
 All notable engineering milestones for this demo are documented here.
 
-The repository is still pre-1.0 because the live VPS deployment and one extracted real-world integration are intentionally pending.
+The repository is still pre-1.0 because the live VPS deployment is intentionally pending.
 
 ## [Unreleased]
+
+### Added
+
+- anonymized real-world WooCommerce order-status audit case using public hooks and HPOS-compatible order CRUD
 
 ### Planned
 
 - live VPS deployment to `lab.tuluzov.com` / `cms.lab.tuluzov.com`
-- one extracted real-world WordPress/WooCommerce integration
 
 ## [0.3.0] - 2026-09-19
 

@@ -124,6 +124,9 @@ esac
 printf '%s\n' "Verifying WooCommerce order $order_id with HPOS enabled..."
 docker compose run --rm -e ORDER_ID="$order_id" wp-cli -c 'wp eval-file /scripts/verify-order.php --allow-root'
 
+printf '%s\n' "Verifying real-world order status audit for order $order_id..."
+docker compose run --rm -e ORDER_ID="$order_id" wp-cli -c 'wp eval-file /scripts/verify-order-audit.php --allow-root'
+
 printf '%s\n' 'Checking structured BFF logs and PII exclusion...'
 frontend_logs=$(docker compose logs --no-color frontend)
 printf '%s' "$frontend_logs" | grep -F "\"request_id\":\"$cart_request_id\"" >/dev/null

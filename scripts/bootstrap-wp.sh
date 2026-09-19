@@ -37,6 +37,7 @@ else
 fi
 
 wp plugin activate engineering-demo-api --allow-root
+wp plugin activate engineering-demo-order-audit --allow-root
 
 hpos_enabled=$(wp option get woocommerce_custom_orders_table_enabled --allow-root 2>/dev/null || true)
 if [ "$hpos_enabled" != "yes" ]; then

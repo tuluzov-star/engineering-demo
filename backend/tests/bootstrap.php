@@ -39,6 +39,9 @@ namespace {
 
     $GLOBALS['engineering_demo_test_actions'] = [];
     $GLOBALS['engineering_demo_test_routes'] = [];
+    $GLOBALS['engineering_demo_test_user_id'] = 0;
+    $GLOBALS['engineering_demo_test_doing_cron'] = false;
+    $GLOBALS['engineering_demo_test_doing_ajax'] = false;
 
     function add_action(string $hook, callable $callback): void
     {
@@ -73,6 +76,50 @@ namespace {
     function __return_true(): bool
     {
         return true;
+    }
+
+    function get_current_user_id(): int
+    {
+        return (int) $GLOBALS['engineering_demo_test_user_id'];
+    }
+
+    function wp_doing_cron(): bool
+    {
+        return (bool) $GLOBALS['engineering_demo_test_doing_cron'];
+    }
+
+    function wp_doing_ajax(): bool
+    {
+        return (bool) $GLOBALS['engineering_demo_test_doing_ajax'];
+    }
+
+    function sanitize_key(string $key): string
+    {
+        return strtolower((string) preg_replace('/[^a-z0-9_\-]/i', '', $key));
+    }
+
+    class WC_Order
+    {
+        /** @var array<string, mixed> */
+        private array $meta = [];
+
+        public int $save_meta_calls = 0;
+
+        public function get_meta(string $key, bool $single = true): mixed
+        {
+            unset($single);
+            return $this->meta[$key] ?? '';
+        }
+
+        public function update_meta_data(string $key, mixed $value): void
+        {
+            $this->meta[$key] = $value;
+        }
+
+        public function save_meta_data(): void
+        {
+            ++$this->save_meta_calls;
+        }
     }
 
     class WP_REST_Request
@@ -118,4 +165,5 @@ namespace {
     }
 
     require_once dirname(__DIR__) . '/wp-content/plugins/engineering-demo-api/engineering-demo-api.php';
+    require_once dirname(__DIR__) . '/wp-content/plugins/engineering-demo-order-audit/engineering-demo-order-audit.php';
 }
