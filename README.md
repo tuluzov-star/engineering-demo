@@ -25,11 +25,13 @@ This is not a theme demo. It is a compact example of how I would design boundari
 | Delivery | production Compose + Caddy + backup + rollback + guarded CD |
 | Performance | 245 ms TTFB / 412 ms LCP / 0 CLS in a representative post-polish CI run |
 
-## Production UI captures
+## Production demo
 
-The screenshots below are generated against the **production standalone Docker target**, not the Next.js development server.
+The demo video and screenshots are generated against the **production standalone Docker target**, not the Next.js development server.
 
-![Engineering demo overview](docs/images/portfolio-overview.png)
+[![Engineering demo overview](docs/images/portfolio-overview.png)](docs/media/engineering-demo.mp4)
+
+▶ **[Watch the ~18-second production commerce demo](docs/media/engineering-demo.mp4)** — architecture → Store API catalogue → cart mutation → checkout → real WooCommerce/HPOS order.
 
 <details>
 <summary>Checkout and mobile views</summary>
@@ -98,7 +100,9 @@ The core rule is simple: **WooCommerce remains the commerce source of truth**. N
 - reproducible Docker infrastructure
 - automated Docker integration smoke testing
 - production Docker topology with Caddy HTTPS
-- production performance budgets measured against the standalone Docker target
+- production performance budgets
+- reproducible production demo video generation measured against the standalone Docker target
+- reproducible Playwright + FFmpeg production demo video
 - release-based GitHub Actions deployment, backup and rollback workflows
 
 ## Stack
@@ -193,7 +197,7 @@ CI covers:
 - structured logging/request-ID propagation
 - production performance budgets
 
-CI keeps Playwright traces/screenshots/videos only when a browser test fails, uploads a JSON performance result, and regenerates production-target portfolio captures as an artifact for visual review.
+CI keeps failure traces/screenshots, uploads JSON performance results, regenerates production-target screenshots, and records the reproducible portfolio MP4/WebM as artifacts for visual review.
 
 ## Performance budget
 
@@ -280,6 +284,8 @@ Production deployment remains disabled until the VPS and GitHub production secre
 │   └── src/lib/
 ├── scripts/
 ├── docs/
+│   ├── images/
+│   └── media/
 ├── .github/workflows/
 ├── docker-compose.yml
 └── docker-compose.production.yml
