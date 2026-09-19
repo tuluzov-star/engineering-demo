@@ -2,18 +2,19 @@
 
 All notable engineering milestones for this demo are documented here.
 
-The repository is still pre-1.0 because the live VPS deployment and public portfolio capture are intentionally pending.
+The repository is still pre-1.0 because the live VPS deployment and short public demo video are intentionally pending.
 
 ## [Unreleased]
 
 ### Planned
 
 - live VPS deployment to `lab.tuluzov.com` / `cms.lab.tuluzov.com`
-- public screenshots and short demo video
+- short public demo video
 - one extracted real-world WordPress/WooCommerce integration
-- first tagged portfolio release
 
 ## [0.3.0] - 2026-09-19
+
+Tagged as `v0.3.0` at the portfolio milestone commit.
 
 ### Added
 
