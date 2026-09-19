@@ -53,7 +53,7 @@
 ## Phase 5 — Portfolio proof
 
 - [x] architecture diagram
-- [ ] short demo video
+- [x] short demo video
 - [x] public README screenshots
 - [x] documented trade-offs
 - [x] performance measurements and budgets
