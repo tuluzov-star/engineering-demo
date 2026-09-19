@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/tuluzov-star/engineering-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/tuluzov-star/engineering-demo/actions/workflows/ci.yml)
 
+Portfolio milestone: [`v0.3.0`](https://github.com/tuluzov-star/engineering-demo/tree/v0.3.0)
+
 A production-shaped **WordPress + WooCommerce + Next.js** engineering case: headless catalogue, cart, checkout, HPOS, Docker, CI, accessibility, observability, performance budgets, backup and rollback.
 
 This is not a theme demo. It is a compact example of how I would design boundaries around an existing WooCommerce domain while adding a modern frontend and delivery layer without duplicating commerce rules or patching WordPress/WooCommerce core.
