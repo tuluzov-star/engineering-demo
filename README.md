@@ -21,7 +21,26 @@ This is not a theme demo. It is a compact example of how I would design boundari
 | Accessibility | axe WCAG A/AA checks, zero automated violations in tested states |
 | Observability | request IDs + structured JSON logs without checkout PII |
 | Delivery | production Compose + Caddy + backup + rollback + guarded CD |
-| Performance | 227 ms TTFB / 352 ms LCP / 0 CLS in the recorded CI run |
+| Performance | 245 ms TTFB / 412 ms LCP / 0 CLS in the latest recorded CI run |
+
+## Production UI captures
+
+The screenshots below are generated against the **production standalone Docker target**, not the Next.js development server.
+
+![Engineering demo overview](docs/images/portfolio-overview.png)
+
+<details>
+<summary>Checkout and mobile views</summary>
+
+### Store API checkout
+
+![WooCommerce Store API checkout through the Next.js BFF](docs/images/portfolio-checkout.png)
+
+### Mobile
+
+<img src="docs/images/portfolio-mobile.png" alt="Engineering demo mobile layout" width="390">
+
+</details>
 
 ### Fast review path
 
@@ -172,7 +191,7 @@ CI covers:
 - structured logging/request-ID propagation
 - production performance budgets
 
-CI keeps Playwright traces/screenshots/videos only when a browser test fails and uploads a JSON performance result for the production Docker target.
+CI keeps Playwright traces/screenshots/videos only when a browser test fails, uploads a JSON performance result, and regenerates production-target portfolio captures as an artifact for visual review.
 
 ## Performance budget
 
@@ -180,13 +199,13 @@ The budget is measured against the production standalone Next.js Docker target c
 
 | Metric | Budget | Recorded CI run |
 | --- | ---: | ---: |
-| TTFB | <= 1000 ms | ~227 ms |
-| LCP | <= 3000 ms | 352 ms |
+| TTFB | <= 1000 ms | 245 ms |
+| LCP | <= 3000 ms | 412 ms |
 | CLS | <= 0.1 | 0 |
-| Load event | <= 4000 ms | ~367 ms |
-| Total encoded transfer | <= 1.5 MB | 149,759 B |
+| Load event | <= 4000 ms | 402.5 ms |
+| Total encoded transfer | <= 1.5 MB | 153,501 B |
 | Script encoded transfer | <= 800 KB | 134,413 B |
-| DOM nodes | <= 700 | 129 |
+| DOM nodes | <= 700 | 208 |
 
 The measured values are from a GitHub-hosted CI run on 2026-09-19, not a claim about real-user field latency. The committed budget is the regression guard.
 
