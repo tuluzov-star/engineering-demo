@@ -8,3 +8,4 @@ frontend/out/
 frontend/playwright-report/
 frontend/test-results/
 *.log
+frontend/performance-results.json
