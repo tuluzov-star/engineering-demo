@@ -165,6 +165,5 @@ namespace {
     }
 
     require_once dirname(__DIR__) . '/wp-content/plugins/engineering-demo-api/engineering-demo-api.php';
+    require_once dirname(__DIR__) . '/wp-content/plugins/engineering-demo-order-audit/engineering-demo-order-audit.php';
 }
-
-require_once dirname(__DIR__) . '/wp-content/plugins/engineering-demo-order-audit/engineering-demo-order-audit.php';
