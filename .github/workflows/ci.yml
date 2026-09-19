@@ -30,20 +30,26 @@ jobs:
       - run: npm run build
 
   backend:
-    name: PHP and shell checks
+    name: PHP, PHPUnit and shell checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+          tools: phpunit:11.5
       - run: php -l backend/wp-content/plugins/engineering-demo-api/engineering-demo-api.php
+      - run: php -l backend/tests/bootstrap.php
+      - run: php -l backend/tests/EngineeringDemoApiTest.php
+      - name: Run isolated plugin contract tests
+        run: phpunit --configuration backend/phpunit.xml.dist
       - run: php -l scripts/seed-products.php
       - run: php -l scripts/configure-store.php
       - run: php -l scripts/verify-order.php
       - run: bash -n scripts/bootstrap-wp.sh
       - run: bash -n scripts/init.sh
       - run: bash -n scripts/smoke-test.sh
+      - run: bash -n scripts/performance-test.sh
       - run: bash -n scripts/backup-production.sh
       - run: bash -n scripts/deploy-production.sh
       - run: bash -n scripts/rollback-production.sh
@@ -75,9 +81,9 @@ jobs:
         run: docker compose --env-file .env.production -f docker-compose.production.yml build frontend
 
   integration:
-    name: Docker commerce + browser smoke test
+    name: Docker commerce + browser + performance
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     needs: [frontend, backend, compose]
     steps:
       - uses: actions/checkout@v4
@@ -96,11 +102,27 @@ jobs:
         run: docker compose run --rm wp-cli /scripts/bootstrap-wp.sh
       - name: Run API cart, checkout and HPOS smoke test
         run: sh scripts/smoke-test.sh
-      - name: Run Playwright headless commerce flow
+      - name: Run Playwright headless commerce and accessibility flow
         working-directory: frontend
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
         run: npm run e2e
+      - name: Run production performance budget
+        env:
+          WORDPRESS_INTERNAL_URL: http://127.0.0.1:8080
+          NEXT_PUBLIC_WORDPRESS_URL: http://127.0.0.1:8080
+          PERFORMANCE_BASE_URL: http://127.0.0.1:3001
+        run: sh scripts/performance-test.sh
+      - name: Upload performance result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: |
+            frontend/performance-results.json
+            performance-next.log
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
