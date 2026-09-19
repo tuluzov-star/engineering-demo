@@ -152,7 +152,7 @@ Current confirmed CI coverage includes:
 
 ## Performance result
 
-The latest successful GitHub-hosted CI run on 2026-09-19 measured the polished production Docker frontend at:
+A successful post-polish GitHub-hosted CI run on 2026-09-19 measured the production Docker frontend at:
 
 | Metric | Measured | Budget |
 | --- | ---: | ---: |
