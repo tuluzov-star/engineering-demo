@@ -27,18 +27,19 @@ The repository is still pre-1.0 because the live VPS deployment and public portf
 - bounded JSON parsing and public mutation rate limiting
 - 60-second catalogue revalidation strategy
 - portfolio case study and architecture diagrams
+- production-target README screenshots for desktop, checkout and mobile
 
 ### Verified
 
 Recorded GitHub Actions performance measurement:
 
-- TTFB ~227 ms
-- LCP 352 ms
+- TTFB 245 ms
+- LCP 412 ms
 - CLS 0
-- load event ~367 ms
-- total encoded transfer 149,759 bytes
+- load event 402.5 ms
+- total encoded transfer 153,501 bytes
 - JavaScript transfer 134,413 bytes
-- 129 DOM nodes
+- 208 DOM nodes
 
 These values are CI regression measurements, not real-user field metrics.
 

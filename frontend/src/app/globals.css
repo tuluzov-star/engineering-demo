@@ -59,17 +59,24 @@ textarea {
   z-index: 100;
   top: 12px;
   left: 12px;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link:focus {
+  width: auto;
+  height: auto;
   padding: 10px 14px;
+  overflow: visible;
   border-radius: 10px;
   background: var(--text);
   color: var(--bg);
   font-weight: 800;
-  transform: translateY(-160%);
-  transition: transform 140ms ease;
-}
-
-.skip-link:focus {
-  transform: translateY(0);
+  clip-path: none;
 }
 
 .shell {

@@ -152,17 +152,17 @@ Current confirmed CI coverage includes:
 
 ## Performance result
 
-A successful GitHub-hosted CI run on 2026-09-19 measured the production Docker frontend at approximately:
+A successful post-polish GitHub-hosted CI run on 2026-09-19 measured the production Docker frontend at:
 
 | Metric | Measured | Budget |
 | --- | ---: | ---: |
-| TTFB | 227 ms | <= 1000 ms |
-| LCP | 352 ms | <= 3000 ms |
+| TTFB | 245 ms | <= 1000 ms |
+| LCP | 412 ms | <= 3000 ms |
 | CLS | 0 | <= 0.1 |
-| Load event | 367 ms | <= 4000 ms |
-| Total transfer | 149,759 B | <= 1,500,000 B |
+| Load event | 402.5 ms | <= 4000 ms |
+| Total transfer | 153,501 B | <= 1,500,000 B |
 | JavaScript transfer | 134,413 B | <= 800,000 B |
-| DOM nodes | 129 | <= 700 |
+| DOM nodes | 208 | <= 700 |
 
 These are CI regression measurements, not real-user field metrics.
 

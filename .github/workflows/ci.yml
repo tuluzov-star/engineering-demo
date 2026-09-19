@@ -107,7 +107,13 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
         run: npm run e2e
-      - name: Upload portfolio screenshots
+      - name: Run production performance budget
+        env:
+          WORDPRESS_INTERNAL_URL: http://127.0.0.1:8080
+          NEXT_PUBLIC_WORDPRESS_URL: http://127.0.0.1:8080
+          PERFORMANCE_BASE_URL: http://127.0.0.1:3001
+        run: sh scripts/performance-test.sh
+      - name: Upload production portfolio screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -115,12 +121,6 @@ jobs:
           path: frontend/portfolio-screenshots
           if-no-files-found: ignore
           retention-days: 7
-      - name: Run production performance budget
-        env:
-          WORDPRESS_INTERNAL_URL: http://127.0.0.1:8080
-          NEXT_PUBLIC_WORDPRESS_URL: http://127.0.0.1:8080
-          PERFORMANCE_BASE_URL: http://127.0.0.1:3001
-        run: sh scripts/performance-test.sh
       - name: Upload performance result
         if: always()
         uses: actions/upload-artifact@v4

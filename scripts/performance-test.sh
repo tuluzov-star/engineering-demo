@@ -79,3 +79,6 @@ PERFORMANCE_BASE_URL="$PERFORMANCE_BASE_URL" npm run performance
 
 printf '%s\n' 'Measured performance:'
 cat "$FRONTEND_DIR/performance-results.json"
+
+printf '%s\n' 'Capturing production portfolio screenshots...'
+PORTFOLIO_BASE_URL="$PERFORMANCE_BASE_URL" npm run portfolio:capture
