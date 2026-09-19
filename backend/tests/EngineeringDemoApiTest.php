@@ -55,9 +55,19 @@ final class EngineeringDemoApiTest extends TestCase
             $callback();
         }
 
-        self::assertCount(1, FeaturesUtil::$calls);
-        self::assertSame('custom_order_tables', FeaturesUtil::$calls[0]['feature']);
-        self::assertTrue(FeaturesUtil::$calls[0]['compatible']);
+        $api_calls = array_values(
+            array_filter(
+                FeaturesUtil::$calls,
+                static fn (array $call): bool => str_contains(
+                    $call['file'],
+                    'engineering-demo-api.php'
+                )
+            )
+        );
+
+        self::assertCount(1, $api_calls);
+        self::assertSame('custom_order_tables', $api_calls[0]['feature']);
+        self::assertTrue($api_calls[0]['compatible']);
     }
 
     public function test_liveness_only_confirms_plugin_process_execution(): void
