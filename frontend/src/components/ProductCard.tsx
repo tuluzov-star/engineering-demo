@@ -22,7 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
             src={image.src}
             alt={image.alt || product.name}
             fill
-            sizes="(max-width: 720px) 100vw, (max-width: 1080px) 50vw, 25vw"
+            sizes="(max-width: 760px) 100vw, (max-width: 1080px) 50vw, 33vw"
           />
         ) : (
           <div className="product-card__placeholder" aria-hidden="true">
